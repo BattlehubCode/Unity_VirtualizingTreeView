@@ -434,12 +434,18 @@ namespace Battlehub.UIControls
             }
 
             ItemContainerData dropTarget = GetItemContainerData(parent);
+            if (dropTarget == null)
+            {
+                DestroyItems(new[] { item }, false);
+                return;
+            }
             ItemContainerData[] dragItems = new[] { dragItem };
             if (CanDrop(dragItems, dropTarget))
             {
                 Drop(dragItems, dropTarget, ItemDropAction.SetLastChild);
             }
         }
+
 
 
 

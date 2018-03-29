@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2015
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unity_VirtualizingTreeView", "Unity_VirtualizingTreeView.csproj", "{95A0DC94-6AF6-62A3-C00C-6DCCE2E7EB9D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unity_VirtualizingTreeView.Editor", "Unity_VirtualizingTreeView.Editor.csproj", "{FC8968CF-4AE4-1968-1F56-5FCC569A1CE4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{95A0DC94-6AF6-62A3-C00C-6DCCE2E7EB9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95A0DC94-6AF6-62A3-C00C-6DCCE2E7EB9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95A0DC94-6AF6-62A3-C00C-6DCCE2E7EB9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95A0DC94-6AF6-62A3-C00C-6DCCE2E7EB9D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FC8968CF-4AE4-1968-1F56-5FCC569A1CE4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC8968CF-4AE4-1968-1F56-5FCC569A1CE4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC8968CF-4AE4-1968-1F56-5FCC569A1CE4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC8968CF-4AE4-1968-1F56-5FCC569A1CE4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
