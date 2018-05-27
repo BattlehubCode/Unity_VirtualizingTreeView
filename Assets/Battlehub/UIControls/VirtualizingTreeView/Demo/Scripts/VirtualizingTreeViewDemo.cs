@@ -233,5 +233,20 @@ namespace Battlehub.UIControls
             TreeView.Add(go);
         }
 
+        private void Update()
+        {
+            if(Input.GetKeyDown(KeyCode.E))
+            {
+                object dataItem = TreeView.Items.OfType<object>().First();
+                if (TreeView.IsExpanded(dataItem))
+                {
+                    TreeView.Collapse(dataItem);
+                }
+                else
+                {
+                    TreeView.Expand(dataItem);
+                }
+            }
+        }
     }
 }

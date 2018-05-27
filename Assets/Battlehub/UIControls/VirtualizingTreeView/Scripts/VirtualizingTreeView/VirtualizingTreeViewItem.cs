@@ -200,14 +200,13 @@ namespace Battlehub.UIControls
 
                 if (m_treeViewItemData.IsExpanded != value)
                 {
-                    m_treeViewItemData.IsExpanded = value && CanExpand;
                     if (m_expander != null)
                     {
                         m_expander.IsOn = value && CanExpand;
                     }
                     if (TreeView != null)
                     {
-                        if (m_treeViewItemData.IsExpanded)
+                        if (value && CanExpand)
                         {
                             TreeView.Expand(m_treeViewItemData.Item);
                         }

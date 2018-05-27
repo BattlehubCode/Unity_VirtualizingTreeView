@@ -470,6 +470,17 @@ namespace Battlehub.UIControls
         private bool m_expandSilently;
         public void Expand(object item)
         {
+            TreeViewItemContainerData treeViewItemData = (TreeViewItemContainerData)GetItemContainerData(item);
+            if(treeViewItemData == null)
+            {
+                throw new ArgumentException("TreeViewItemContainerData not found", "item");
+            }
+            if(treeViewItemData.IsExpanded)
+            {
+                return;
+            }
+            treeViewItemData.IsExpanded = true;
+
             if (m_expandSilently)
             {
                 return;
@@ -477,8 +488,7 @@ namespace Battlehub.UIControls
 
             if (ItemExpanding != null)
             {
-                TreeViewItemContainerData treeViewItemData = (TreeViewItemContainerData)GetItemContainerData(item);
-
+                
                 VirtualizingItemExpandingArgs args = new VirtualizingItemExpandingArgs(treeViewItemData.Item);
                 ItemExpanding(this, args);
 
@@ -521,6 +531,15 @@ namespace Battlehub.UIControls
         public void Collapse(object item)
         {
             TreeViewItemContainerData treeViewItemData = (TreeViewItemContainerData)GetItemContainerData(item);
+            if (treeViewItemData == null)
+            {
+                throw new ArgumentException("TreeViewItemContainerData not found", "item");
+            }
+            if (!treeViewItemData.IsExpanded)
+            {
+                return;
+            }
+            treeViewItemData.IsExpanded = false;
 
             int itemIndex = IndexOf(treeViewItemData.Item);
             List<object> itemsToDestroy = new List<object>();
