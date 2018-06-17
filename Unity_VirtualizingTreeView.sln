@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2015
+# Visual Studio 15
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unity_VirtualizingTreeView", "Unity_VirtualizingTreeView.csproj", "{95A0DC94-6AF6-62A3-C00C-6DCCE2E7EB9D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unity_VirtualizingTreeView.Editor", "Unity_VirtualizingTreeView.Editor.csproj", "{FC8968CF-4AE4-1968-1F56-5FCC569A1CE4}"

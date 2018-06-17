@@ -308,6 +308,12 @@ namespace Battlehub.UIControls
 
         private void OnVirtualContentTransformChaged()
         {
+            if (m_containers.Count == 0)
+            {
+                DataBind(Index);
+                UpdateContentSize();
+            }
+
             if (m_mode == VirtualizingMode.Horizontal)
             {
                 content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, m_virtualContent.rect.height);
@@ -316,6 +322,8 @@ namespace Battlehub.UIControls
             {
                 content.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, m_virtualContent.rect.width);
             }
+
+            
         }
 
         protected override void SetNormalizedPosition(float value, int axis)
