@@ -94,8 +94,7 @@ namespace Battlehub.UIControls
                     else if (localPoint.y < rt.rect.height / 4 - rt.rect.height && !tvItem.HasChildren)
                     {
                         Action = ItemDropAction.SetNextSibling;
-                        RectTransform.position = rt.position;
-                        RectTransform.localPosition = RectTransform.localPosition - new Vector3(0, rt.rect.height * ParentCanvas.scaleFactor, 0);
+                        RectTransform.position = rt.position + Vector3.Scale(Vector3.down * rt.rect.height, ParentCanvas.transform.localScale);
                     }
                     else
                     {
