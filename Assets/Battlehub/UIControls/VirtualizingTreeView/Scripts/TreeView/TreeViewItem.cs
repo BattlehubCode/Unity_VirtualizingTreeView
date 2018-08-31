@@ -100,6 +100,27 @@ namespace Battlehub.UIControls
             }
         }
 
+
+        public void UpdateIndent()
+        {
+            if (m_parent != null && TreeView != null && m_itemLayout != null)
+            {
+                m_indent = m_parent.m_indent + TreeView.Indent;
+                m_itemLayout.padding = new RectOffset(
+                    m_indent,
+                    m_itemLayout.padding.right,
+                    m_itemLayout.padding.top,
+                    m_itemLayout.padding.bottom);
+
+                int siblingIndex = transform.GetSiblingIndex();
+                SetIndent(this, ref siblingIndex);
+            }
+            else
+            {
+                ZeroIndent();
+            }
+        }
+
         private void ZeroIndent()
         {
             m_indent = 0;

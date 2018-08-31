@@ -558,6 +558,17 @@ namespace Battlehub.UIControls
             tvItem.Parent = tvSibling.Parent;
         }
 
+        public void UpdateIndent(object obj)
+        {
+            TreeViewItem item = GetTreeViewItem(obj);
+            if (item == null)
+            {
+                return;
+            }
+
+            item.UpdateIndent();
+        }
+
         public void FixScrollRect()
         {
             Canvas.ForceUpdateCanvases();

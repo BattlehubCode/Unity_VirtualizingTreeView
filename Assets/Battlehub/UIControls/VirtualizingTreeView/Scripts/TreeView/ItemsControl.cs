@@ -818,6 +818,30 @@ namespace Battlehub.UIControls
             return m_items.IndexOf(obj);
         }
 
+        public virtual void SetIndex(object obj, int newIndex)
+        {
+            int index = IndexOf(obj);
+            if (index == -1)
+            {
+                return;
+            }
+
+            if (index == m_selectedIndex)
+            {
+                m_selectedIndex = newIndex;
+            }
+
+            m_items.RemoveAt(index);
+            m_items.Insert(newIndex, obj);
+
+            ItemContainer container = m_itemContainers[index];
+            m_itemContainers.RemoveAt(index);
+            m_itemContainers.Insert(newIndex, container);
+
+            container.transform.SetSiblingIndex(newIndex);
+        }
+
+
         /// <summary>
         /// Get ItemContainer for data item
         /// </summary>

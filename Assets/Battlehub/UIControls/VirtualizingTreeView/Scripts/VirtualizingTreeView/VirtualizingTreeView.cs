@@ -609,6 +609,10 @@ namespace Battlehub.UIControls
 
         private void OnTreeViewItemParentChanged(object sender, VirtualizingParentChangedEventArgs e)
         {
+            if(!CanHandleEvent(sender))
+            {
+                return;
+            }
             TreeViewItemContainerData tvItem = (TreeViewItemContainerData)sender;
          
             TreeViewItemContainerData oldParent = e.OldParent;
@@ -901,6 +905,21 @@ namespace Battlehub.UIControls
             }
         }
 
+        public VirtualizingTreeViewItem GetTreeViewItem(object item)
+        {
+            return GetItemContainer(item) as VirtualizingTreeViewItem;
+        }
 
+
+        public void ScrollIntoView(object obj)
+        {
+            int index = IndexOf(obj);
+            if (index < 0)
+            {
+                throw new InvalidOperationException(string.Format("item {0} does not exist or not visible", obj));
+            }
+            VirtualizingScrollRect scrollRect = GetComponentInChildren<VirtualizingScrollRect>();
+            scrollRect.Index = index;
+        }
     }
 }

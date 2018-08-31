@@ -204,7 +204,7 @@ namespace Battlehub.UIControls
                     
                     if(m_isFocused)
                     {
-                        if (SelectedIndex == -1 && m_scrollRect.ItemsCount > 0)
+                        if (SelectedIndex == -1 && m_scrollRect.ItemsCount > 0 && !CanUnselectAll)
                         {
                             SelectedIndex = 0;
                         }
@@ -1339,6 +1339,17 @@ namespace Battlehub.UIControls
         /// <returns></returns>
         protected bool CanHandleEvent(object sender)
         {
+            if (sender is ItemContainerData)
+            {
+                ItemContainerData data = (ItemContainerData)sender;
+                ItemContainerData ownData;
+                if (m_itemContainerData.TryGetValue(data.Item, out ownData))
+                {
+                    return data == ownData;
+                }
+                return false;
+            }
+
             VirtualizingItemContainer itemContainer = sender as VirtualizingItemContainer;
             if (!itemContainer)
             {

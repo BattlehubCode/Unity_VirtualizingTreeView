@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using UnityEngine;
 using UnityEngine.UI;
 
 namespace Battlehub.UIControls
@@ -16,79 +17,101 @@ namespace Battlehub.UIControls
             set
             {
                 m_canExpand = value;
-                if(!m_canExpand)
-                {
-                    if(m_toggle != null)
-                    {
-                        m_toggle.isOn = false;
-                        m_toggle.enabled = false;
-                    }
-                    OffGraphic.enabled = false;
-                }
-                else
-                {
-                    if (m_toggle != null)
-                    {
-                        m_toggle.enabled = true;
-                        if(!IsOn)
-                        {
-                            OffGraphic.enabled = true;
-                        }
-                    }
-                }
+                UpdateState();
             }
         }
-        
+
         public bool IsOn
         {
             get { return m_toggle.isOn; }
             set
             {
-                m_toggle.isOn = value && m_canExpand;   
+                m_toggle.isOn = value;
+            }
+        }
+
+        private bool m_started;
+        private void UpdateState()
+        {
+            if (m_started)
+            {
+                DoUpdateState();
+            }
+            else
+            {
+                StartCoroutine(CoUpdateState());
+            }
+        }
+
+        private IEnumerator CoUpdateState()
+        {
+            yield return new WaitForEndOfFrame();
+            DoUpdateState();
+        }
+
+        private void DoUpdateState()
+        {
+            if (CanExpand)
+            {
+                m_toggle.enabled = true;
+
+                if (IsOn)
+                {
+                    if (OffGraphic != null)
+                    {
+                        OffGraphic.enabled = false;
+                    }
+                }
+                else
+                {
+                    if (OffGraphic != null)
+                    {
+                        OffGraphic.enabled = true;
+                    }
+                }
+            }
+            else
+            {
+                if (m_toggle != null)
+                {
+                    m_toggle.enabled = false;
+                }
+                if (OffGraphic != null)
+                {
+                    OffGraphic.enabled = false;
+                }
             }
         }
 
         private void Awake()
         {
             m_toggle = GetComponent<Toggle>();
-            if(!m_canExpand)
+            if (OffGraphic != null)
             {
-                m_toggle.isOn = false;
-                m_toggle.enabled = false;
+                OffGraphic.enabled = false;
             }
-            if(OffGraphic != null)
-            {
-                OffGraphic.enabled = !m_toggle.isOn && m_canExpand;
-            }
-            
+            UpdateState();
+
             m_toggle.onValueChanged.AddListener(OnValueChanged);
+        }
+
+        private void Start()
+        {
+            m_started = true;
         }
 
         private void OnEnable()
         {
-            if(m_toggle != null)
+            if (m_toggle != null)
             {
-                if (OffGraphic != null)
-                {
-                    OffGraphic.enabled = !m_toggle.isOn && m_canExpand;
-                }
-
-                if (!m_canExpand)
-                {
-                    m_toggle.onValueChanged.RemoveListener(OnValueChanged);
-                    m_toggle.isOn = true;
-                    m_toggle.isOn = false;
-                    m_toggle.onValueChanged.AddListener(OnValueChanged);
-                    m_toggle.enabled = false;
-                    
-                }
+                UpdateState();
             }
-           
+
         }
 
         private void OnDestroy()
         {
-            if(m_toggle != null)
+            if (m_toggle != null)
             {
                 m_toggle.onValueChanged.RemoveListener(OnValueChanged);
             }
@@ -96,16 +119,7 @@ namespace Battlehub.UIControls
 
         private void OnValueChanged(bool value)
         {
-            if (!m_canExpand)
-            {
-                m_toggle.isOn = false;
-                m_toggle.enabled = false;
-            }
-            if (OffGraphic != null)
-            {
-                OffGraphic.enabled = !value && m_canExpand;
-            }
-            
+            UpdateState();
         }
     }
 }

@@ -288,6 +288,13 @@ namespace Battlehub.UIControls
             parent.Children.Add(item);
 
             TreeView.AddChild(parent, item);
+            TreeView.Expand(parent);
+
+            DataItem subItem = new DataItem("New Sub Item");
+            item.Children.Add(subItem);
+
+            TreeView.AddChild(item, subItem);
+            TreeView.Expand(item);
 
             m_counter++;
             m_counter %= m_dataItems.Count;
