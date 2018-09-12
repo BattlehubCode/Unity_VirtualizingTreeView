@@ -240,11 +240,11 @@ namespace Battlehub.UIControls
                 object dataItem = TreeView.Items.OfType<object>().First();
                 if (TreeView.IsExpanded(dataItem))
                 {
-                    TreeView.Collapse(dataItem);
+                    TreeView.Internal_Collapse(dataItem);
                 }
                 else
                 {
-                    TreeView.Expand(dataItem);
+                    TreeView.Internal_Expand(dataItem);
                 }
             }
         }

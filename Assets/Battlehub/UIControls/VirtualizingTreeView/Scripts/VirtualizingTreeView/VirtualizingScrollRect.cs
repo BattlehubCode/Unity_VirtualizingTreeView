@@ -12,7 +12,7 @@ namespace Battlehub.UIControls
     public enum VirtualizingMode
     {
         Horizontal,
-        Vertical //NOTE: Only vertical mode was tested
+        Vertical, //NOTE: Only vertical mode was tested
     }
 
     public delegate void DataBindAction(RectTransform container, object item);
@@ -50,6 +50,38 @@ namespace Battlehub.UIControls
         [SerializeField]
         private VirtualizingMode m_mode = VirtualizingMode.Vertical;
 
+        [SerializeField]
+        private bool m_useGrid = false;
+        public bool UseGrid
+        {
+            get { return m_useGrid; }
+        }
+        [SerializeField]
+        private Vector2 m_gridSpacing;
+
+        private GridLayoutGroup m_gridLayoutGroup;
+        public int ContainersPerGroup
+        {
+            get
+            {
+                if (m_useGrid)
+                {
+                    return m_gridLayoutGroup.constraintCount;
+                }
+                return 1;
+            }
+            set
+            {
+                if (m_useGrid)
+                {
+                    m_gridLayoutGroup.constraintCount = value;
+                    scrollSensitivity = ContainerSize;// * ContainersPerGroup;
+                    UpdateContentSize();
+                }
+            }
+        }
+
+
         /// <summary>
         /// linked list of ui containers
         /// </summary>
@@ -67,7 +99,7 @@ namespace Battlehub.UIControls
                 if (m_items != value)
                 {
                     m_items = value;
-                    DataBind(Index);
+                    DataBind(RoundedIndex);
                     UpdateContentSize();
                 }
             }
@@ -80,12 +112,17 @@ namespace Battlehub.UIControls
         {
             get
             {
-                if(Items == null)
+                if (Items == null)
                 {
                     return 0;
                 }
                 return Items.Count;
             }
+        }
+
+        private int RoundedItemsCount
+        {
+            get { return Mathf.CeilToInt(((float)ItemsCount) / ContainersPerGroup) * ContainersPerGroup; }
         }
 
 
@@ -110,30 +147,55 @@ namespace Battlehub.UIControls
             }
         }
 
-        /// <summary>
-        /// index of first visible item
-        /// </summary>
         public int Index
+        {
+            get { return RoundedIndex + LocalGroupIndex; }
+            set { RoundedIndex = value; }
+        }
+
+        private int LocalGroupIndex
         {
             get
             {
-                if (ItemsCount == 0)
+                if (RoundedItemsCount == 0)
                 {
                     return 0;
                 }
-                int index = Mathf.RoundToInt(NormalizedIndex * Mathf.Max((ItemsCount - VisibleItemsCount), 0));
+
+                int index = Mathf.RoundToInt(NormalizedIndex * Mathf.Max((RoundedItemsCount - VisibleItemsCount), 0));
+                index = index % ContainersPerGroup;
+                return index;
+            }
+        }
+
+        /// <summary>
+        /// index of first visible item
+        /// </summary>
+        public int RoundedIndex
+        {
+            get
+            {
+                if (RoundedItemsCount == 0)
+                {
+                    return 0;
+                }
+
+                float magicScrollFix = (0.5f / RoundedItemsCount);
+
+                int index = Mathf.RoundToInt((NormalizedIndex + magicScrollFix) * Mathf.Max((RoundedItemsCount - VisibleItemsCount), 0));
+
+                index = index / ContainersPerGroup * ContainersPerGroup;
+
                 return index;
             }
             set
             {
-                if (value < 0 || value >= ItemsCount)
+                if (value < 0 || value >= RoundedItemsCount)
                 {
                     return;
                 }
-
-             
                 NormalizedIndex = EvalNormalizedIndex(value);
-                if(m_mode == VirtualizingMode.Vertical)
+                if (m_mode == VirtualizingMode.Vertical)
                 {
                     verticalNormalizedPosition = 1 - NormalizedIndex;
                 }
@@ -144,6 +206,8 @@ namespace Battlehub.UIControls
             }
         }
 
+
+
         /// <summary>
         /// This method will convert index to normalized index
         /// </summary>
@@ -151,7 +215,7 @@ namespace Battlehub.UIControls
         /// <returns></returns>
         private float EvalNormalizedIndex(int index)
         {
-            int delta = ItemsCount - VisibleItemsCount;
+            int delta = RoundedItemsCount - VisibleItemsCount;
             if (delta <= 0)
             {
                 return 0;
@@ -184,7 +248,7 @@ namespace Battlehub.UIControls
                     Debug.LogWarning("ContainerSize is too small");
                     return 0;
                 }
-                return Mathf.FloorToInt(Size / ContainerSize);
+                return Mathf.FloorToInt(Size / ContainerSize) * ContainersPerGroup;
             }
         }
 
@@ -197,11 +261,11 @@ namespace Battlehub.UIControls
             {
                 if (m_mode == VirtualizingMode.Horizontal)
                 {
-                    return Mathf.Max(0, ContainerPrefab.rect.width);
+                    return Mathf.Max(0, ContainerPrefab.rect.width + (m_useGrid ? m_gridSpacing.x : 0));
                 }
-                else if(m_mode == VirtualizingMode.Vertical)
+                else if (m_mode == VirtualizingMode.Vertical)
                 {
-                    return Mathf.Max(0, ContainerPrefab.rect.height);
+                    return Mathf.Max(0, ContainerPrefab.rect.height + (m_useGrid ? m_gridSpacing.y : 0));
                 }
 
                 throw new System.InvalidOperationException("Unable to eval container size in non-virtualizing mode");
@@ -228,7 +292,7 @@ namespace Battlehub.UIControls
         {
             base.Awake();
 
-            if(m_virtualContent == null)
+            if (m_virtualContent == null)
             {
                 return;
             }
@@ -238,58 +302,91 @@ namespace Battlehub.UIControls
 
             UpdateVirtualContentPosition();
 
-            if (m_mode == VirtualizingMode.Horizontal)
+            if (m_useGrid)
             {
-                //In horizontal mode we destroy VerticalLayoutGroup if exists
-
-                VerticalLayoutGroup verticalLayout = m_virtualContent.GetComponent<VerticalLayoutGroup>();
-                if (verticalLayout != null)
+                LayoutGroup layoutGroup = m_virtualContent.GetComponent<LayoutGroup>();
+                if (layoutGroup != null && !(layoutGroup is GridLayoutGroup))
                 {
-                    DestroyImmediate(verticalLayout);
+                    DestroyImmediate(layoutGroup);
                 }
 
-                // Create HorizontalLayoutGroup if does not exists
-
-                HorizontalLayoutGroup horizontalLayout = m_virtualContent.GetComponent<HorizontalLayoutGroup>();
-                if (horizontalLayout == null)
+                GridLayoutGroup gridLayout = m_virtualContent.GetComponent<GridLayoutGroup>();
+                if (gridLayout == null)
                 {
-                    horizontalLayout = m_virtualContent.gameObject.AddComponent<HorizontalLayoutGroup>();
+                    gridLayout = m_virtualContent.gameObject.AddComponent<GridLayoutGroup>();
                 }
 
-                // Setup HorizontalLayoutGroup behavior to arrange ui containers correctly
-
-                horizontalLayout.childControlHeight = true;
-                horizontalLayout.childControlWidth = false;
-                horizontalLayout.childForceExpandWidth = false;
+                gridLayout.cellSize = ContainerPrefab.rect.size;
+                gridLayout.childAlignment = TextAnchor.UpperLeft;
+                gridLayout.startCorner = GridLayoutGroup.Corner.UpperLeft;
+                gridLayout.spacing = m_gridSpacing;
+                if (m_mode == VirtualizingMode.Vertical)
+                {
+                    gridLayout.startAxis = GridLayoutGroup.Axis.Horizontal;
+                    gridLayout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+                }
+                else
+                {
+                    gridLayout.startAxis = GridLayoutGroup.Axis.Vertical;
+                    gridLayout.constraint = GridLayoutGroup.Constraint.FixedRowCount;
+                }
+                m_gridLayoutGroup = gridLayout;
             }
             else
             {
-                //In horizontal mode we destroy HorizontalLayoutGroup if exists
-
-                HorizontalLayoutGroup horizontalLayout = m_virtualContent.GetComponent<HorizontalLayoutGroup>();
-                if (horizontalLayout != null)
+                if (m_mode == VirtualizingMode.Horizontal)
                 {
-                    DestroyImmediate(horizontalLayout);
+                    //In horizontal mode we destroy VerticalLayoutGroup or GridLayoutGroup if exists
+
+                    LayoutGroup layoutGroup = m_virtualContent.GetComponent<LayoutGroup>();
+                    if (layoutGroup != null && !(layoutGroup is HorizontalLayoutGroup))
+                    {
+                        DestroyImmediate(layoutGroup);
+                    }
+
+                    // Create HorizontalLayoutGroup if does not exists
+
+                    HorizontalLayoutGroup horizontalLayout = m_virtualContent.GetComponent<HorizontalLayoutGroup>();
+                    if (horizontalLayout == null)
+                    {
+                        horizontalLayout = m_virtualContent.gameObject.AddComponent<HorizontalLayoutGroup>();
+                    }
+
+                    // Setup HorizontalLayoutGroup behavior to arrange ui containers correctly
+
+                    horizontalLayout.childControlHeight = true;
+                    horizontalLayout.childControlWidth = false;
+                    horizontalLayout.childForceExpandWidth = false;
                 }
-
-                // Create VerticalLayoutGroup if does not exists
-
-                VerticalLayoutGroup verticalLayout = m_virtualContent.GetComponent<VerticalLayoutGroup>();
-                if (verticalLayout == null)
+                else
                 {
-                    verticalLayout = m_virtualContent.gameObject.AddComponent<VerticalLayoutGroup>();
+                    //In horizontal mode we destroy HorizontalLayoutGroup or GridLayoutGroup if exists
+
+                    LayoutGroup layoutGroup = m_virtualContent.GetComponent<LayoutGroup>();
+                    if (layoutGroup != null && !(layoutGroup is VerticalLayoutGroup))
+                    {
+                        DestroyImmediate(layoutGroup);
+                    }
+
+                    // Create VerticalLayoutGroup if does not exists
+
+                    VerticalLayoutGroup verticalLayout = m_virtualContent.GetComponent<VerticalLayoutGroup>();
+                    if (verticalLayout == null)
+                    {
+                        verticalLayout = m_virtualContent.gameObject.AddComponent<VerticalLayoutGroup>();
+                    }
+
+                    // Setup VerticalLayoutGroup behavior to arrange ui containers correctly
+
+                    verticalLayout.childControlWidth = true;
+                    verticalLayout.childControlHeight = false;
+                    verticalLayout.childForceExpandHeight = false;
                 }
-
-                // Setup VerticalLayoutGroup behavior to arrange ui containers correctly
-
-                verticalLayout.childControlWidth = true;
-                verticalLayout.childControlHeight = false;
-                verticalLayout.childForceExpandHeight = false;
             }
 
             // Set ScrollSensitivity to be exactly the same as ContainerSize
-            
-            scrollSensitivity = ContainerSize;
+
+            scrollSensitivity = ContainerSize;// * ContainersPerGroup;
         }
 
         protected override void Start()
@@ -300,7 +397,7 @@ namespace Battlehub.UIControls
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            if(m_virtualContentTransformChangeListener != null)
+            if (m_virtualContentTransformChangeListener != null)
             {
                 m_virtualContentTransformChangeListener.RectTransformChanged -= OnVirtualContentTransformChaged;
             }
@@ -310,32 +407,50 @@ namespace Battlehub.UIControls
         {
             if (m_containers.Count == 0)
             {
-                DataBind(Index);
+                DataBind(RoundedIndex);
                 UpdateContentSize();
             }
 
             if (m_mode == VirtualizingMode.Horizontal)
             {
                 content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, m_virtualContent.rect.height);
+                if (m_useGrid)
+                {
+                    if ((m_gridLayoutGroup.cellSize.y + m_gridSpacing.y) < 0.00001f)
+                    {
+                        Debug.LogError("cellSize is too small");
+                    }
+
+                    RectTransform parent = (RectTransform)m_virtualContent.parent;
+                    ContainersPerGroup = Mathf.FloorToInt(parent.rect.height / Mathf.Max(0.00001f, m_gridLayoutGroup.cellSize.y + m_gridSpacing.y));
+                }
             }
-            else if(m_mode == VirtualizingMode.Vertical)
+            else if (m_mode == VirtualizingMode.Vertical)
             {
                 content.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, m_virtualContent.rect.width);
-            }
+                if (m_useGrid)
+                {
+                    if ((m_gridLayoutGroup.cellSize.x + m_gridSpacing.x) < 0.00001f)
+                    {
+                        Debug.LogError("cellSize is too small");
+                    }
 
-            
+                    RectTransform parent = (RectTransform)m_virtualContent.parent;
+                    ContainersPerGroup = Mathf.FloorToInt(parent.rect.width / Mathf.Max(0.00001f, m_gridLayoutGroup.cellSize.x + m_gridSpacing.x));
+                }
+            }
         }
 
         protected override void SetNormalizedPosition(float value, int axis)
         {
             base.SetNormalizedPosition(value, axis);
             UpdateVirtualContentPosition();
-            if(m_mode == VirtualizingMode.Vertical && axis == 1)
+            if (m_mode == VirtualizingMode.Vertical && axis == 1)
             {
                 //ScrollView creates top to bottom vertical scrollbar by default, so value inverted here
                 NormalizedIndex = 1 - value;
             }
-            else if(m_mode == VirtualizingMode.Horizontal && axis == 0)
+            else if (m_mode == VirtualizingMode.Horizontal && axis == 0)
             {
                 NormalizedIndex = value;
             }
@@ -353,14 +468,14 @@ namespace Battlehub.UIControls
             {
                 NormalizedIndex = horizontalNormalizedPosition;
             }
-        }        
+        }
 
         protected override void OnRectTransformDimensionsChange()
         {
             base.OnRectTransformDimensionsChange();
 
             //Databind if there should be more(or less) visible items than instantiated ui containers
-            if(isActiveAndEnabled)
+            if (isActiveAndEnabled)
             {
                 StartCoroutine(CoRectTransformDimensionsChange());
             }
@@ -371,7 +486,7 @@ namespace Battlehub.UIControls
             yield return new WaitForEndOfFrame();
             if (VisibleItemsCount != m_containers.Count)
             {
-                DataBind(Index);
+                DataBind(RoundedIndex);
             }
 
             OnVirtualContentTransformChaged();
@@ -384,11 +499,11 @@ namespace Battlehub.UIControls
         {
             if (m_virtualContent != null)
             {
-                if(m_mode == VirtualizingMode.Horizontal)
+                if (m_mode == VirtualizingMode.Horizontal)
                 {
                     m_virtualContent.anchoredPosition = new Vector2(0, content.anchoredPosition.y);
                 }
-                else if(m_mode == VirtualizingMode.Vertical)
+                else if (m_mode == VirtualizingMode.Vertical)
                 {
                     m_virtualContent.anchoredPosition = new Vector2(content.anchoredPosition.x, 0);
                 }
@@ -403,11 +518,11 @@ namespace Battlehub.UIControls
         {
             if (m_mode == VirtualizingMode.Horizontal)
             {
-                content.sizeDelta = new Vector2(ItemsCount * ContainerSize, content.sizeDelta.y);
+                content.sizeDelta = new Vector2(Mathf.CeilToInt(((float)RoundedItemsCount) / ContainersPerGroup) * ContainerSize, content.sizeDelta.y);
             }
             else if (m_mode == VirtualizingMode.Vertical)
             {
-                content.sizeDelta = new Vector2(content.sizeDelta.x, ItemsCount * ContainerSize);
+                content.sizeDelta = new Vector2(content.sizeDelta.x, Mathf.CeilToInt(((float)RoundedItemsCount) / ContainersPerGroup) * ContainerSize);
             }
         }
 
@@ -421,7 +536,7 @@ namespace Battlehub.UIControls
             newValue = Mathf.Clamp01(newValue);
 
             //store index
-            int prevFirstItemIndex = Index;
+            int prevFirstItemIndex = RoundedIndex;
 
             //store normalized index
             float prevNormalizedIndex = m_normalizedIndex;
@@ -430,9 +545,9 @@ namespace Battlehub.UIControls
             m_normalizedIndex = newValue;
 
             //get updated index
-            int firstItemIndex = Index;
+            int firstItemIndex = RoundedIndex;
 
-            if (firstItemIndex < 0 || firstItemIndex >= ItemsCount)
+            if (firstItemIndex < 0 || firstItemIndex >= RoundedItemsCount)
             {
                 m_normalizedIndex = prevNormalizedIndex;
                 return;
@@ -457,19 +572,35 @@ namespace Battlehub.UIControls
                         for (int i = 0; i < delta; ++i)
                         {
                             LinkedListNode<RectTransform> first = m_containers.First;
-                            m_containers.RemoveFirst();
+                            RectTransform recycledContainer;
+                            if (m_containers.Count > 1)
+                            {
+                                m_containers.RemoveFirst();
 
-                            int lastSiblingIndex = m_containers.Last.Value.transform.GetSiblingIndex();
+                                int lastSiblingIndex = m_containers.Last.Value.transform.GetSiblingIndex();
 
-                            m_containers.AddLast(first);
+                                m_containers.AddLast(first);
 
-                            RectTransform recycledContainer = first.Value;
-                            recycledContainer.SetSiblingIndex(lastSiblingIndex + 1);
+                                recycledContainer = first.Value;
+                                recycledContainer.SetSiblingIndex(lastSiblingIndex + 1);
+                            }
+                            else
+                            {
+                                recycledContainer = first.Value;
+                            }
 
                             if (ItemDataBinding != null && Items != null)
                             {
-                                object item = Items[prevFirstItemIndex + VisibleItemsCount];
-                                ItemDataBinding(recycledContainer, item);
+                                int index = prevFirstItemIndex + VisibleItemsCount;
+                                if (index < ItemsCount)
+                                {
+                                    object item = Items[prevFirstItemIndex + VisibleItemsCount];
+                                    ItemDataBinding(recycledContainer, item);
+                                }
+                                else
+                                {
+                                    ItemDataBinding(recycledContainer, null);
+                                }
                             }
                             prevFirstItemIndex++;
                         }
@@ -479,21 +610,36 @@ namespace Battlehub.UIControls
                         for (int i = 0; i < delta; ++i)
                         {
                             LinkedListNode<RectTransform> last = m_containers.Last;
-                            m_containers.RemoveLast();
+                            RectTransform recycledContainer;
+                            if (m_containers.Count > 1)
+                            {
+                                m_containers.RemoveLast();
 
-                            int firstSiblingIndex = m_containers.First.Value.transform.GetSiblingIndex();
+                                int firstSiblingIndex = m_containers.First.Value.transform.GetSiblingIndex();
 
-                            m_containers.AddFirst(last);
+                                m_containers.AddFirst(last);
 
-                            RectTransform recycledContainer = last.Value;
-                            recycledContainer.SetSiblingIndex(firstSiblingIndex);
+                                recycledContainer = last.Value;
+                                recycledContainer.SetSiblingIndex(firstSiblingIndex);
+                            }
+                            else
+                            {
+                                recycledContainer = last.Value;
+                            }
 
                             prevFirstItemIndex--;
 
                             if (ItemDataBinding != null && Items != null)
                             {
-                                object item = Items[prevFirstItemIndex];
-                                ItemDataBinding(recycledContainer, item);
+                                if (prevFirstItemIndex < ItemsCount)
+                                {
+                                    object item = Items[prevFirstItemIndex];
+                                    ItemDataBinding(recycledContainer, item);
+                                }
+                                else
+                                {
+                                    ItemDataBinding(recycledContainer, null);
+                                }
                             }
                         }
                     }
@@ -527,15 +673,23 @@ namespace Battlehub.UIControls
 
                 foreach (RectTransform container in m_containers)
                 {
-                    ItemDataBinding(container, Items[firstItemIndex + i]);
+                    int index = firstItemIndex + i;
+                    if (index < Items.Count)
+                    {
+                        ItemDataBinding(container, Items[firstItemIndex + i]);
+                    }
+                    else
+                    {
+                        ItemDataBinding(container, null);
+                    }
                     i++;
                 }
             }
         }
-       
+
         public bool IsParentOf(Transform child)
         {
-            if(m_virtualContent == null)
+            if (m_virtualContent == null)
             {
                 return false;
             }
@@ -545,7 +699,7 @@ namespace Battlehub.UIControls
 
         public void InsertItem(int index, object item, bool raiseItemDataBindingEvent = true)
         {
-            int firstIndex = Index;
+            int firstIndex = RoundedIndex;
             int lastIndex = firstIndex + VisibleItemsCount - 1;
 
             m_items.Insert(index, item);
@@ -555,7 +709,7 @@ namespace Battlehub.UIControls
 
             if (PossibleItemsCount >= m_items.Count)
             {
-                if(m_containers.Count < VisibleItemsCount)
+                if (m_containers.Count < VisibleItemsCount)
                 {
                     RectTransform container = Instantiate(ContainerPrefab, m_virtualContent);
                     m_containers.AddLast(container);
@@ -593,10 +747,10 @@ namespace Battlehub.UIControls
 
         public void RemoveItems(int[] indices, bool raiseItemDataBindingEvent = true)
         {
-            int index = Index;
+            int index = RoundedIndex;
 
             indices = indices.OrderBy(i => i).ToArray();
-            for(int i = indices.Length - 1; i >= 0; --i)
+            for (int i = indices.Length - 1; i >= 0; --i)
             {
                 int removeAtIndex = indices[i];
                 if (removeAtIndex < 0 || removeAtIndex >= m_items.Count)
@@ -607,9 +761,9 @@ namespace Battlehub.UIControls
                 m_items.RemoveAt(removeAtIndex);
             }
 
-            if(index + VisibleItemsCount >= ItemsCount)
+            if (index + VisibleItemsCount >= RoundedItemsCount)
             {
-                index = Mathf.Max(0, ItemsCount - VisibleItemsCount);
+                index = Mathf.Max(0, RoundedItemsCount - VisibleItemsCount);
             }
 
             UpdateContentSize();
@@ -620,8 +774,8 @@ namespace Battlehub.UIControls
 
 
         public void SetNextSibling(object sibling, object nextSibling)
-        { 
-            if(sibling == nextSibling)
+        {
+            if (sibling == nextSibling)
             {
                 return;
             }
@@ -631,7 +785,7 @@ namespace Battlehub.UIControls
 
             Debug.Assert(siblingIndex != nextSiblingIndex);
 
-            int firstIndex = Index;
+            int firstIndex = RoundedIndex;
             int lastIndex = firstIndex + VisibleItemsCount - 1;
 
             bool isNextSiblingInView = firstIndex <= nextSiblingIndex && nextSiblingIndex <= lastIndex;
@@ -651,11 +805,9 @@ namespace Battlehub.UIControls
             m_items.RemoveAt(nextSiblingIndex);
             m_items.Insert(insertIndex, nextSibling);
 
-       
-
-            if(isInsertIndexInView)
+            if (isInsertIndexInView)
             {
-                if(isNextSiblingInView)
+                if (isNextSiblingInView)
                 {
                     RectTransform nextContainer = m_containers.ElementAt(nextSiblingContainerIndex);
                     m_containers.Remove(nextContainer);
@@ -698,8 +850,8 @@ namespace Battlehub.UIControls
                         m_containers.AddAfter(prevNode, lastContainer);
                     }
 
- 
-                    if(nextSiblingContainerIndex < 0)
+
+                    if (nextSiblingContainerIndex < 0)
                     {
                         UpdateScrollbar(firstIndex - 1);
 
@@ -761,7 +913,7 @@ namespace Battlehub.UIControls
         {
             int index = m_items.IndexOf(sibling);
             index--;
-            if(index >= 0)
+            if (index >= 0)
             {
                 sibling = m_items[index];
                 SetNextSibling(sibling, prevSibling);
@@ -779,7 +931,7 @@ namespace Battlehub.UIControls
 
                 lastContainer.SetSiblingIndex(0);
 
-                if(ItemDataBinding != null)
+                if (ItemDataBinding != null)
                 {
                     ItemDataBinding(lastContainer, prevSibling);
                 }
@@ -788,20 +940,20 @@ namespace Battlehub.UIControls
 
         public RectTransform GetContainer(object obj)
         {
-            if(m_items == null)
-            {
-                return null;
-            }            
-            
-            int index = m_items.IndexOf(obj);
-            if(index < 0)
+            if (m_items == null)
             {
                 return null;
             }
 
-            int firstIndex = Index;
+            int index = m_items.IndexOf(obj);
+            if (index < 0)
+            {
+                return null;
+            }
+
+            int firstIndex = RoundedIndex;
             int lastIndex = firstIndex + VisibleItemsCount - 1;
-            if(firstIndex <= index && index <= lastIndex)
+            if (firstIndex <= index && index <= lastIndex)
             {
                 return m_containers.ElementAt(index - firstIndex);
             }
@@ -811,7 +963,7 @@ namespace Battlehub.UIControls
 
         public RectTransform FirstContainer()
         {
-            if(m_containers.Count == 0)
+            if (m_containers.Count == 0)
             {
                 return null;
             }
@@ -821,12 +973,12 @@ namespace Battlehub.UIControls
 
         public void ForEachContainer(System.Action<RectTransform> action)
         {
-            if(action == null)
+            if (action == null)
             {
                 return;
             }
 
-            foreach(RectTransform container in m_containers)
+            foreach (RectTransform container in m_containers)
             {
                 action(container);
             }
@@ -834,7 +986,7 @@ namespace Battlehub.UIControls
 
         public RectTransform LastContainer()
         {
-            if(m_containers.Count == 0)
+            if (m_containers.Count == 0)
             {
                 return null;
             }

@@ -134,7 +134,24 @@ namespace Battlehub.UIControls
         public virtual object Item
         {
             get { return m_item; }
-            set { m_item = value; }
+            set
+            {
+                m_item = value;
+
+                if (m_isEditing)
+                {
+                    EditorPresenter.SetActive(m_item != null);
+                }
+                else
+                {
+                    ItemPresenter.SetActive(m_item != null);
+                }
+
+                if (m_item == null)
+                {
+                    IsSelected = false;
+                }
+            }
         }
 
         private bool m_canBeginEdit;
@@ -191,16 +208,21 @@ namespace Battlehub.UIControls
             {
                 if (EditorPresenter != null)
                 {
-                    EditorPresenter.SetActive(m_isEditing);
+                    EditorPresenter.SetActive(m_item != null && m_isEditing);
                 }
 
                 if (ItemPresenter != null)
                 {
-                    ItemPresenter.SetActive(!m_isEditing);
+                    ItemPresenter.SetActive(m_item != null && !m_isEditing);
                 }
             }
+
+            if (m_item == null)
+            {
+                IsSelected = false;
+            }
             //m_isSelected = false;
-           // Item = null;
+            // Item = null;
         }
 
         private IEnumerator CoBeginEdit()
@@ -253,8 +275,6 @@ namespace Battlehub.UIControls
                     PointerUp(this, eventData);
                 }
             }
-
-
         }
 
         void IBeginDragHandler.OnBeginDrag(PointerEventData eventData)

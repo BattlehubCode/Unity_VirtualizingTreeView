@@ -208,6 +208,7 @@ GameObject:
   - component: {fileID: 114171284073095840}
   - component: {fileID: 114766226435074124}
   - component: {fileID: 114704784156180930}
+  - component: {fileID: 114268790430136288}
   m_Layer: 5
   m_Name: VirtualizingTreeView
   m_TagString: Untagged
@@ -298,6 +299,22 @@ MonoBehaviour:
   m_FillAmount: 1
   m_FillClockwise: 1
   m_FillOrigin: 0
+--- !u!114 &114268790430136288
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1733655225862514}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a96ddcb57a2d8540835f98bf2883ada, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_isMouseButtonDown: 0
+  MultiselectKey: 306
+  RangeselectKey: 304
+  SelectAllKey: 97
+  DeleteKey: 127
 --- !u!114 &114351771828852846
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -560,9 +577,9 @@ MonoBehaviour:
     m_PressedTrigger: Pressed
     m_DisabledTrigger: Disabled
   m_Interactable: 1
-  m_TargetGraphic: {fileID: 0}
+  m_TargetGraphic: {fileID: 114171284073095840}
   m_eventSystem: {fileID: 0}
-  InputProvider: {fileID: 0}
+  InputProvider: {fileID: 114268790430136288}
   SelectOnPointerUp: 0
   CanUnselectAll: 1
   CanEdit: 1

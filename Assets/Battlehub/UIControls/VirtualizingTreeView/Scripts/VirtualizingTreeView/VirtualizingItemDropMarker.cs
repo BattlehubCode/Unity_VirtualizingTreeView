@@ -50,9 +50,9 @@ namespace Battlehub.UIControls
         public virtual void SetTraget(VirtualizingItemContainer item)
         {
             gameObject.SetActive(item != null);
-            
+
             m_item = item;
-            if(m_item == null)
+            if (m_item == null)
             {
                 Action = ItemDropAction.None;
             }
@@ -60,12 +60,12 @@ namespace Battlehub.UIControls
 
         public virtual void SetPosition(Vector2 position)
         {
-            if(m_item == null)
+            if (m_item == null)
             {
                 return;
             }
 
-            if(!m_itemsControl.CanReorder)
+            if (!m_itemsControl.CanReorder)
             {
                 return;
             }
@@ -90,7 +90,7 @@ namespace Battlehub.UIControls
                     Action = ItemDropAction.SetPrevSibling;
                     RectTransform.position = rt.position;
                 }
-                else 
+                else
                 {
                     Action = ItemDropAction.SetNextSibling;
 
@@ -99,7 +99,7 @@ namespace Battlehub.UIControls
                 }
             }
         }
-       
+
     }
 }
 

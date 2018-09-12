@@ -2,7 +2,7 @@
 using UnityEngine.UI;
 
 namespace Battlehub.UIControls
-{ 
+{
     public class VirtualizingTreeViewItem : VirtualizingItemContainer
     {
         private TreeViewExpander m_expander;
@@ -10,7 +10,7 @@ namespace Battlehub.UIControls
         private HorizontalLayoutGroup m_itemLayout;
 
         private Toggle m_toggle;
-       
+
         private VirtualizingTreeView TreeView
         {
             get { return ItemsControl as VirtualizingTreeView; }
@@ -26,26 +26,30 @@ namespace Battlehub.UIControls
             get { return base.Item; }
             set
             {
-                if(base.Item != value)
+                if (base.Item != value)
                 {
                     base.Item = value;
 
                     m_treeViewItemData = (TreeViewItemContainerData)TreeView.GetItemContainerData(value);
-                    if(m_treeViewItemData == null)
+                    if (m_treeViewItemData == null)
                     {
+                        m_treeViewItemData = new TreeViewItemContainerData();
                         name = "Null";
                         return;
                     }
                     else
                     {
-                        
+
                         UpdateIndent();
-                        m_expander.CanExpand = m_treeViewItemData.CanExpand;
-                        m_expander.IsOn = m_treeViewItemData.IsExpanded && m_treeViewItemData.CanExpand;
+                        if (m_expander != null)
+                        {
+                            m_expander.CanExpand = m_treeViewItemData.CanExpand;
+                            m_expander.IsOn = m_treeViewItemData.IsExpanded && m_treeViewItemData.CanExpand;
+                        }
 
                         name = base.Item.ToString() + " " + m_treeViewItemData.ToString();
                     }
-                    
+
                 }
             }
         }
@@ -61,10 +65,10 @@ namespace Battlehub.UIControls
         /// </summary>
         public TreeViewItemContainerData Parent
         {
-            get { return m_treeViewItemData.Parent; }
+            get { return m_treeViewItemData != null ? m_treeViewItemData.Parent : null; }
             set
             {
-                if(m_treeViewItemData == null)
+                if (m_treeViewItemData == null)
                 {
                     return;
                 }
@@ -73,8 +77,8 @@ namespace Battlehub.UIControls
                     return;
                 }
 
-                
-                m_treeViewItemData.Parent = value;             
+
+                m_treeViewItemData.Parent = value;
                 UpdateIndent();
             }
         }
@@ -97,20 +101,24 @@ namespace Battlehub.UIControls
             {
                 ZeroIndent();
                 int itemIndex = TreeView.IndexOf(Item);
-                if(HasChildren)
+                if (HasChildren)
                 {
                     SetIndent(this, ref itemIndex);
-                }   
+                }
             }
         }
 
         private void ZeroIndent()
         {
-            m_treeViewItemData.Indent = 0;
+            if (m_treeViewItemData != null)
+            {
+                m_treeViewItemData.Indent = 0;
+            }
+
             if (m_itemLayout != null)
             {
                 m_itemLayout.padding = new RectOffset(
-                    m_treeViewItemData.Indent,
+                    0,
                     m_itemLayout.padding.right,
                     m_itemLayout.padding.top,
                     m_itemLayout.padding.bottom);
@@ -128,7 +136,7 @@ namespace Battlehub.UIControls
                     return;
                 }
 
-                if(child.Item == null)
+                if (child.Item == null)
                 {
                     return;
                 }
@@ -170,6 +178,10 @@ namespace Battlehub.UIControls
             get { return m_treeViewItemData == null ? false : m_treeViewItemData.CanExpand; }
             set
             {
+                if (m_treeViewItemData == null)
+                {
+                    return;
+                }
                 if (m_treeViewItemData.CanExpand != value)
                 {
                     m_treeViewItemData.CanExpand = value;
@@ -193,7 +205,7 @@ namespace Battlehub.UIControls
             get { return m_treeViewItemData.IsExpanded; }
             set
             {
-                if(m_treeViewItemData == null)
+                if (m_treeViewItemData == null)
                 {
                     return;
                 }
@@ -208,11 +220,11 @@ namespace Battlehub.UIControls
                     {
                         if (value && CanExpand)
                         {
-                            TreeView.Expand(m_treeViewItemData.Item);
+                            TreeView.Internal_Expand(m_treeViewItemData.Item);
                         }
                         else
                         {
-                            TreeView.Collapse(m_treeViewItemData.Item);
+                            TreeView.Internal_Collapse(m_treeViewItemData.Item);
                         }
                     }
                 }
@@ -223,11 +235,15 @@ namespace Battlehub.UIControls
         {
             get
             {
+                if (m_treeViewItemData == null)
+                {
+                    return false;
+                }
                 return m_treeViewItemData.HasChildren(TreeView);
             }
         }
 
-      
+
 
         /// <summary>
         /// Get First Child of TreeViewItem
@@ -320,7 +336,7 @@ namespace Battlehub.UIControls
             //}
         }
 
-        
+
 
     }
 

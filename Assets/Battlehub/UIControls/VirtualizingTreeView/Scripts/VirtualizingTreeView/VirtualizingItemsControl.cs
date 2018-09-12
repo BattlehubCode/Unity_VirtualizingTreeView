@@ -63,7 +63,7 @@ namespace Battlehub.UIControls
             }
         }
 
-        public override void DataBindItem(object item, ItemContainerData itemContainerData, VirtualizingItemContainer itemContainer)
+        public override void DataBindItem(object item, VirtualizingItemContainer itemContainer)
         {
             TDataBindingArgs args = new TDataBindingArgs();
             args.Item = item;
@@ -72,11 +72,20 @@ namespace Battlehub.UIControls
 
             itemContainer.Clear();
 
-            RaiseItemDataBinding(args);
-            itemContainer.CanEdit = args.CanEdit;
-            itemContainer.CanDrag = args.CanDrag;
-            itemContainer.CanDrop = args.CanDrop;
-            
+            if (item != null)
+            {
+                RaiseItemDataBinding(args);
+
+                itemContainer.CanEdit = args.CanEdit;
+                itemContainer.CanDrag = args.CanDrag;
+                itemContainer.CanDrop = args.CanDrop;
+            }
+            else
+            {
+                itemContainer.CanEdit = false;
+                itemContainer.CanDrag = false;
+                itemContainer.CanDrop = false;
+            }
         }
 
         protected void RaiseItemDataBinding(TDataBindingArgs args)
@@ -104,7 +113,7 @@ namespace Battlehub.UIControls
         }
     }
 
-    public class VirtualizingItemsControl : Selectable,  IDropHandler, IUpdateSelectedHandler, IUpdateFocusedHandler
+    public class VirtualizingItemsControl : Selectable, IDropHandler, IUpdateSelectedHandler, IUpdateFocusedHandler
     {
         /// <summary>
         /// Raised on begin drag
@@ -112,14 +121,22 @@ namespace Battlehub.UIControls
         public event EventHandler<ItemArgs> ItemBeginDrag;
 
         /// <summary>
-        /// 
+        /// Reased on before item dropped
         /// </summary>
         public event EventHandler<ItemDropCancelArgs> ItemBeginDrop;
+
+        /// <summary>
+        /// Raised when pointer enter new drop target
+        /// </summary>
+        public event EventHandler<ItemDropCancelArgs> ItemDragEnter;
+
+        public event EventHandler ItemDragExit;
 
         /// <summary>
         /// Raised on after item dropped
         /// </summary>
         public event EventHandler<ItemDropArgs> ItemDrop;
+
 
         /// <summary>
         /// Raised when drag operation completed
@@ -187,29 +204,29 @@ namespace Battlehub.UIControls
         /// Navigate VirtualizingItems if is focused
         /// </summary>
         private bool m_isFocused;
-        
+
         public bool IsFocused
         {
             get { return m_isFocused; }
             set
             {
-                if(m_isFocused != value)
+                if (m_isFocused != value)
                 {
                     m_isFocused = value;
 
-                    if(IsFocusedChanged != null)
+                    if (IsFocusedChanged != null)
                     {
                         IsFocusedChanged(this, EventArgs.Empty);
                     }
-                    
-                    if(m_isFocused)
+
+                    if (m_isFocused)
                     {
                         if (SelectedIndex == -1 && m_scrollRect.ItemsCount > 0 && !CanUnselectAll)
                         {
                             SelectedIndex = 0;
                         }
                     }
-                }   
+                }
             }
         }
 
@@ -220,10 +237,10 @@ namespace Battlehub.UIControls
             get { return m_isSelected; }
             private set
             {
-                if(m_isSelected != value)
+                if (m_isSelected != value)
                 {
                     m_isSelected = value;
-                
+
                     if (m_isSelected)
                     {
                         m_selectionBackup = m_selectedItems;
@@ -378,7 +395,7 @@ namespace Battlehub.UIControls
                         object item = m_selectedItems[i];
 
                         ItemContainerData selectData;
-                        if(m_itemContainerData.TryGetValue(item, out selectData))
+                        if (m_itemContainerData.TryGetValue(item, out selectData))
                         {
                             selectData.IsSelected = true;
                         }
@@ -485,10 +502,10 @@ namespace Battlehub.UIControls
                 if (SelectedItem != null)
                 {
                     ItemContainerData unselectData;
-                    if(m_itemContainerData.TryGetValue(SelectedItem, out unselectData))
+                    if (m_itemContainerData.TryGetValue(SelectedItem, out unselectData))
                     {
                         unselectData.IsSelected = false;
-                    }                    
+                    }
                 }
                 VirtualizingItemContainer oldItemContainer = GetItemContainer(SelectedItem);
                 if (oldItemContainer != null)
@@ -509,10 +526,8 @@ namespace Battlehub.UIControls
                             selectData.IsSelected = true;
                         }
                     }
-                    
 
                     VirtualizingItemContainer selectedItemContainer = GetItemContainer(newItem);
-
                     if (selectedItemContainer != null)
                     {
                         selectedItemContainer.IsSelected = true;
@@ -524,7 +539,7 @@ namespace Battlehub.UIControls
                 for (int i = 0; i < oldItems.Length; ++i)
                 {
                     object oldItem = oldItems[i];
-                    if(oldItem != null)
+                    if (oldItem != null)
                     {
                         ItemContainerData unselectData;
                         if (m_itemContainerData.TryGetValue(oldItem, out unselectData))
@@ -568,16 +583,16 @@ namespace Battlehub.UIControls
                 }
                 else
                 {
-                    
+
                     List<object> items = value.OfType<object>().ToList();
 
-                    if(m_selectedItemsHS != null)
+                    if (m_selectedItemsHS != null)
                     {
                         SelectedItems = items.Where(item => m_selectedItemsHS.Contains(item)).ToArray();
                     }
 
                     m_itemContainerData = new Dictionary<object, ItemContainerData>();
-                    for(int i = 0; i < items.Count; ++i)
+                    for (int i = 0; i < items.Count; ++i)
                     {
                         m_itemContainerData.Add(items[i], InstantiateItemContainerData(items[i]));
                     }
@@ -605,13 +620,13 @@ namespace Battlehub.UIControls
             base.Awake();
 
             m_scrollRect = GetComponent<VirtualizingScrollRect>();
-            if(m_scrollRect == null)
+            if (m_scrollRect == null)
             {
                 Debug.LogError("Scroll Rect is required");
             }
             m_scrollRect.ItemDataBinding += OnScrollRectItemDataBinding;
             m_dropMarker = GetComponentInChildren<VirtualizingItemDropMarker>(true);
-            
+
             m_rtcListener = GetComponentInChildren<RectTransformChangeListener>();
             if (m_rtcListener != null)
             {
@@ -626,7 +641,7 @@ namespace Battlehub.UIControls
             m_prevCanDrag = CanDrag;
             OnCanDragChanged();
 
-           
+
             AwakeOverride();
         }
 
@@ -641,7 +656,7 @@ namespace Battlehub.UIControls
             if (InputProvider == null)
             {
                 InputProvider = GetComponent<InputProvider>();
-                if(InputProvider == null)
+                if (InputProvider == null)
                 {
                     InputProvider = CreateInputProviderOverride();
                 }
@@ -713,7 +728,7 @@ namespace Battlehub.UIControls
                 }
             }
 
-            if(InputProvider != null && IsSelected)
+            if (InputProvider != null && IsSelected)
             {
                 if (InputProvider.IsDeleteButtonDown && CanRemove)
                 {
@@ -724,76 +739,130 @@ namespace Battlehub.UIControls
                 {
                     SelectedItems = m_scrollRect.Items;
                 }
-                else if(InputProvider.IsSubmitButtonDown)
+                else if (InputProvider.IsSubmitButtonDown)
                 {
                     IsFocused = !IsFocused;
-                    if(!IsFocused)
+                    if (!IsFocused)
                     {
-                        if(Submit != null)
+                        if (Submit != null)
                         {
                             Submit(this, EventArgs.Empty);
                         }
                     }
                 }
-                else if(InputProvider.IsCancelButtonDown)
+                else if (InputProvider.IsCancelButtonDown)
                 {
                     SelectedItems = m_selectionBackup;
                     IsFocused = false;
-                    if(Cancel != null)
+                    if (Cancel != null)
                     {
                         Cancel(this, EventArgs.Empty);
                     }
                 }
 
-                if(IsFocused)
+                if (IsFocused)
                 {
-                    if(!Mathf.Approximately(InputProvider.VerticalAxis, 0))
+                    if (!Mathf.Approximately(InputProvider.VerticalAxis, 0))
                     {
-                        if(InputProvider.IsVerticalButtonDown)
+                        if (InputProvider.IsVerticalButtonDown)
                         {
                             m_repeater = new Repeater(Time.time, 0, 0.4f, 0.05f, () =>
                             {
                                 float ver = InputProvider.VerticalAxis;
                                 if (ver < 0)
                                 {
-                                    if (m_scrollRect.Index + m_scrollRect.VisibleItemsCount > SelectedIndex + 1)
+                                    if (m_scrollRect.Index + m_scrollRect.VisibleItemsCount > SelectedIndex + m_scrollRect.ContainersPerGroup)
                                     {
-                                        SelectedIndex++;
+                                        if (SelectedIndex + m_scrollRect.ContainersPerGroup < m_scrollRect.ItemsCount)
+                                        {
+                                            SelectedIndex += m_scrollRect.ContainersPerGroup;
+                                        }
                                     }
                                     else
                                     {
-                                        m_scrollRect.Index++;
-                                        if(m_scrollRect.Index + m_scrollRect.VisibleItemsCount > SelectedIndex + 1)
+                                        m_scrollRect.Index += m_scrollRect.ContainersPerGroup;
+                                        if (m_scrollRect.Index + m_scrollRect.VisibleItemsCount > SelectedIndex + m_scrollRect.ContainersPerGroup)
                                         {
-                                            SelectedIndex++;
+                                            if (SelectedIndex + m_scrollRect.ContainersPerGroup < m_scrollRect.ItemsCount)
+                                            {
+                                                SelectedIndex += m_scrollRect.ContainersPerGroup;
+                                            }
                                         }
                                     }
                                 }
                                 else if (ver > 0)
                                 {
-                                    if (m_scrollRect.Index < SelectedIndex)
+                                    if (m_scrollRect.Index < (SelectedIndex - (m_scrollRect.ContainersPerGroup - 1)))
                                     {
-                                        SelectedIndex--;
+                                        SelectedIndex -= m_scrollRect.ContainersPerGroup;
                                     }
                                     else
                                     {
-                                        m_scrollRect.Index--;
-                                        if(m_scrollRect.Index < SelectedIndex)
+                                        m_scrollRect.Index -= m_scrollRect.ContainersPerGroup;
+                                        if (m_scrollRect.Index < (SelectedIndex - (m_scrollRect.ContainersPerGroup - 1)))
                                         {
-                                            SelectedIndex--;
-                                        }   
+                                            SelectedIndex -= m_scrollRect.ContainersPerGroup;
+                                        }
                                     }
                                 }
                             });
                         }
                         m_repeater.Repeat(Time.time);
                     }
+                    else if (!Mathf.Approximately(InputProvider.HorizontalAxis, 0))
+                    {
+                        if (m_scrollRect.UseGrid)
+                        {
+                            if (InputProvider.IsHorizontalButtonDown)
+                            {
+                                m_repeater = new Repeater(Time.time, 0, 0.4f, 0.05f, () =>
+                                {
+                                    float hor = InputProvider.HorizontalAxis;
+                                    if (hor > 0)
+                                    {
+                                        if (m_scrollRect.Index + m_scrollRect.VisibleItemsCount > SelectedIndex + m_scrollRect.ContainersPerGroup)
+                                        {
+                                            SelectedIndex++;
+                                        }
+                                        else
+                                        {
+                                            m_scrollRect.Index++;
+                                            if (m_scrollRect.Index + m_scrollRect.VisibleItemsCount > SelectedIndex + 1)
+                                            {
+                                                if (SelectedIndex < m_scrollRect.ItemsCount - 1)
+                                                {
+                                                    SelectedIndex++;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else if (hor < 0)
+                                    {
+                                        if (m_scrollRect.Index < SelectedIndex)
+                                        {
+                                            SelectedIndex--;
+                                        }
+                                        else
+                                        {
+                                            m_scrollRect.Index--;
+                                            if (m_scrollRect.Index < SelectedIndex)
+                                            {
+                                                SelectedIndex--;
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                            m_repeater.Repeat(Time.time);
+                        }
+                    }
                     else
                     {
                         m_repeater = null;
                     }
                 }
-                
+
+
             }
 
             if (m_prevCanDrag != CanDrag)
@@ -843,14 +912,14 @@ namespace Battlehub.UIControls
             VirtualizingItemContainer.EndDrag -= OnItemEndDrag;
 
             IsFocused = false;
-            
+
             OnDisableOverride();
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            if(m_scrollRect != null)
+            if (m_scrollRect != null)
             {
                 m_scrollRect.ItemDataBinding -= OnScrollRectItemDataBinding;
             }
@@ -983,6 +1052,39 @@ namespace Battlehub.UIControls
             selectedItems.Remove(((VirtualizingItemContainer)sender).Item);
             SelectedItems = selectedItems;
         }
+
+        private void TryToSelect(VirtualizingItemContainer sender)
+        {
+            if (InputProvider.IsFunctional2ButtonPressed)
+            {
+                if (sender.Item != null)
+                {
+                    SelectRange(sender);
+                }
+            }
+            else if (InputProvider.IsFunctionalButtonPressed)
+            {
+                if (sender.Item != null)
+                {
+                    sender.IsSelected = !sender.IsSelected;
+                }
+            }
+            else
+            {
+                if (sender.Item != null)
+                {
+                    sender.IsSelected = true;
+                }
+                else if (CanUnselectAll)
+                {
+                    SelectedIndex = -1;
+                }
+            }
+
+            m_eventSystem.SetSelectedGameObject(gameObject);
+            IsFocused = true;
+        }
+
         private void OnItemPointerDown(VirtualizingItemContainer sender, PointerEventData eventData)
         {
             if (!CanHandleEvent(sender))
@@ -1001,21 +1103,7 @@ namespace Battlehub.UIControls
 
             if (!SelectOnPointerUp)
             {
-                if (InputProvider.IsFunctional2ButtonPressed)
-                {
-                    SelectRange(sender);
-                }
-                else if (InputProvider.IsFunctionalButtonPressed)
-                {
-                    sender.IsSelected = !sender.IsSelected;
-                }
-                else
-                {
-                    sender.IsSelected = true;
-                }
-
-                m_eventSystem.SetSelectedGameObject(gameObject);
-                IsFocused = true;
+                TryToSelect(sender);
             }
         }
 
@@ -1040,21 +1128,7 @@ namespace Battlehub.UIControls
             {
                 if (!m_isDropInProgress)
                 {
-                    if (InputProvider.IsFunctional2ButtonPressed)
-                    {
-                        SelectRange(sender);
-                    }
-                    else if (InputProvider.IsFunctionalButtonPressed)
-                    {
-                        sender.IsSelected = !sender.IsSelected;
-                    }
-                    else
-                    {
-                        sender.IsSelected = true;
-                    }
-
-                    m_eventSystem.SetSelectedGameObject(gameObject);
-                    IsFocused = true;
+                    TryToSelect(sender);
                 }
             }
             else
@@ -1079,13 +1153,31 @@ namespace Battlehub.UIControls
             {
                 return;
             }
+
             m_dropTarget = sender;
+
+            ItemDropCancelArgs args = null;
+            if (m_dragItems != null && m_dragItems.Length > 0)
+            {
+                args = new ItemDropCancelArgs(m_dragItems.Select(di => di.Item).ToArray(), m_dropTarget.Item, m_dropMarker.Action, m_externalDragOperation);
+                if (ItemDragEnter != null)
+                {
+                    ItemDragEnter(this, args);
+                }
+            }
 
             if (m_dragItems != null || m_externalDragOperation)
             {
                 if (m_scrollDir == ScrollDir.None)
                 {
-                    m_dropMarker.SetTraget(m_dropTarget);
+                    if (args == null || !args.Cancel)
+                    {
+                        m_dropMarker.SetTraget(m_dropTarget);
+                    }
+                    else
+                    {
+                        m_dropMarker.SetTraget(null);
+                    }
                 }
             }
         }
@@ -1100,6 +1192,14 @@ namespace Battlehub.UIControls
             if (m_dragItems != null || m_externalDragOperation)
             {
                 m_dropMarker.SetTraget(null);
+            }
+
+            if (m_dragItems != null)
+            {
+                if (ItemDragExit != null)
+                {
+                    ItemDragExit(this, EventArgs.Empty);
+                }
             }
         }
 
@@ -1121,12 +1221,6 @@ namespace Battlehub.UIControls
                 return;
             }
 
-            if (m_dropTarget != null)
-            {
-                m_dropMarker.SetTraget(m_dropTarget);
-                m_dropMarker.SetPosition(eventData.position);
-            }
-
             if (m_selectedItems != null && m_selectedItems.Contains(sender.Item))
             {
                 m_dragItems = GetDragItems();
@@ -1140,6 +1234,23 @@ namespace Battlehub.UIControls
             {
                 ItemBeginDrag(this, new ItemArgs(m_dragItems.Select(di => di.Item).ToArray()));
             }
+
+            ItemDropCancelArgs args = new ItemDropCancelArgs(m_dragItems.Select(di => di.Item).ToArray(), m_dropTarget.Item, m_dropMarker.Action, m_externalDragOperation);
+            if (ItemDragEnter != null)
+            {
+                ItemDragEnter(this, args);
+            }
+
+            if (m_dropTarget != null && !args.Cancel)
+            {
+                m_dropMarker.SetTraget(m_dropTarget);
+                m_dropMarker.SetPosition(eventData.position);
+            }
+            else
+            {
+                m_dropMarker.SetTraget(null);
+            }
+
         }
 
         private void OnItemDrag(VirtualizingItemContainer sender, PointerEventData eventData)
@@ -1200,7 +1311,7 @@ namespace Battlehub.UIControls
                 return;
             }
 
-            if(m_dragItems == null)
+            if (m_dragItems == null)
             {
                 return;
             }
@@ -1208,7 +1319,7 @@ namespace Battlehub.UIControls
             m_isDropInProgress = true; //Prevent ChangeParent operation
             try
             {
-                if (CanDrop(m_dragItems, GetItemContainerData(m_dropTarget.Item)))
+                if (m_dropTarget != null && CanDrop(m_dragItems, GetItemContainerData(m_dropTarget.Item)))
                 {
                     bool cancel = false;
                     if (ItemBeginDrop != null)
@@ -1247,7 +1358,7 @@ namespace Battlehub.UIControls
 
         private void OnItemEndDrag(VirtualizingItemContainer sender, PointerEventData eventData)
         {
-            if(m_dropTarget != null)
+            if (m_dropTarget != null)
             {
                 OnItemDrop(sender, eventData);
             }
@@ -1325,7 +1436,7 @@ namespace Battlehub.UIControls
             m_scrollRect.ForEachContainer(c =>
             {
                 VirtualizingItemContainer container = c.GetComponent<VirtualizingItemContainer>();
-                if(container != null)
+                if (container != null)
                 {
                     container.CanDrag = CanDrag;
                 }
@@ -1386,12 +1497,12 @@ namespace Battlehub.UIControls
             if (m_scrollRect.ItemsCount > 0)
             {
                 RectTransform rt = m_scrollRect.LastContainer();
-                if(rt != null)
+                if (rt != null)
                 {
                     m_dropTarget = rt.GetComponent<VirtualizingItemContainer>();
                     m_dropMarker.Action = ItemDropAction.SetNextSibling;
                 }
-                
+
             }
 
             m_isDropInProgress = true; //Prevent ChangeParent operation
@@ -1446,27 +1557,30 @@ namespace Battlehub.UIControls
         {
         }
 
-        public virtual void DataBindItem(object item, ItemContainerData itemContainerData, VirtualizingItemContainer itemContainer)
+        public virtual void DataBindItem(object item, VirtualizingItemContainer itemContainer)
         {
 
         }
-        
+
         private void OnScrollRectItemDataBinding(RectTransform container, object item)
         {
             VirtualizingItemContainer itemContainer = container.GetComponent<VirtualizingItemContainer>();
             itemContainer.Item = item;
-            m_selectionLocked = true;
 
-            ItemContainerData itemContainerData = m_itemContainerData[item];
-            itemContainerData.IsSelected = IsItemSelected(item);
+            if (item != null)
+            {
+                m_selectionLocked = true;
+                ItemContainerData itemContainerData = m_itemContainerData[item];
+                itemContainerData.IsSelected = IsItemSelected(item);
 
-            itemContainer.IsSelected = itemContainerData.IsSelected;
-            itemContainer.CanDrag = CanDrag;
+                itemContainer.IsSelected = itemContainerData.IsSelected;
+                itemContainer.CanDrag = CanDrag;
+                m_selectionLocked = false;
+            }
 
-            m_selectionLocked = false;
-            DataBindItem(item, itemContainerData, itemContainer);
+            DataBindItem(item, itemContainer);
 
-            if(m_scrollRect.ItemsCount == 1)
+            if (m_scrollRect.ItemsCount == 1)
             {
                 SetContainersSize();
             }
@@ -1532,14 +1646,14 @@ namespace Battlehub.UIControls
 
         public VirtualizingItemContainer GetItemContainer(object item)
         {
-            if(item == null)
+            if (item == null)
             {
                 return null;
             }
 
-            
+
             RectTransform container = m_scrollRect.GetContainer(item);
-            if(container == null)
+            if (container == null)
             {
                 return null;
             }
@@ -1548,7 +1662,7 @@ namespace Battlehub.UIControls
 
         public ItemContainerData GetItemContainerData(object item)
         {
-            if(item == null)
+            if (item == null)
             {
                 return null;
             }
@@ -1561,7 +1675,7 @@ namespace Battlehub.UIControls
 
         public ItemContainerData GetItemContainerData(int siblingIndex)
         {
-            if(siblingIndex < 0 || m_scrollRect.Items.Count <= siblingIndex)
+            if (siblingIndex < 0 || m_scrollRect.Items.Count <= siblingIndex)
             {
                 return null;
             }
@@ -1654,11 +1768,22 @@ namespace Battlehub.UIControls
             {
                 return;
             }
+
+            ItemDropCancelArgs args = new ItemDropCancelArgs(m_dragItems.Select(di => di.Item).ToArray(), m_dropTarget.Item, m_dropMarker.Action, m_externalDragOperation);
+            if (ItemDragEnter != null)
+            {
+                ItemDragEnter(this, args);
+            }
+
             if (m_dragItems != null || m_externalDragOperation)
             {
-                if (m_scrollDir == ScrollDir.None)
+                if (m_scrollDir == ScrollDir.None && !args.Cancel)
                 {
                     m_dropMarker.SetTraget(m_dropTarget);
+                }
+                else
+                {
+                    m_dropMarker.SetTraget(null);
                 }
             }
         }
@@ -1730,7 +1855,7 @@ namespace Battlehub.UIControls
 
         protected virtual void DestroyItems(object[] items, bool unselect)
         {
-            if(unselect)
+            if (unselect)
             {
                 for (int i = 0; i < items.Length; ++i)
                 {
@@ -1751,9 +1876,9 @@ namespace Battlehub.UIControls
                     }
                 }
             }
-           
-            m_scrollRect.RemoveItems(items.Select( item => IndexOf(item)).ToArray());
-            for(int i = 0; i < items.Length; ++i)
+
+            m_scrollRect.RemoveItems(items.Select(item => IndexOf(item)).ToArray());
+            for (int i = 0; i < items.Length; ++i)
             {
                 object item = items[i];
                 m_itemContainerData.Remove(item);
@@ -1834,7 +1959,7 @@ namespace Battlehub.UIControls
 
         public object GetItemAt(int index)
         {
-            if(index < 0 || index >= m_scrollRect.Items.Count)
+            if (index < 0 || index >= m_scrollRect.Items.Count)
             {
                 return null;
             }
@@ -1858,11 +1983,11 @@ namespace Battlehub.UIControls
 
         public void OnUpdateSelected(BaseEventData eventData)
         {
-            if(!IsFocused)
+            if (!IsFocused)
             {
                 return;
             }
-            
+
             eventData.Use();
         }
 
