@@ -47,7 +47,7 @@ namespace Battlehub.UIControls
 
         }
 
-        public virtual void SetTraget(VirtualizingItemContainer item)
+        public virtual void SetTarget(VirtualizingItemContainer item)
         {
             gameObject.SetActive(item != null);
 

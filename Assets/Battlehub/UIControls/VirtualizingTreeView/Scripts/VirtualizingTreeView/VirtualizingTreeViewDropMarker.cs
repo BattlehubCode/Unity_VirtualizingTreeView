@@ -40,9 +40,9 @@ namespace Battlehub.UIControls
             }
         }
 
-        public override void SetTraget(VirtualizingItemContainer item)
+        public override void SetTarget(VirtualizingItemContainer item)
         {
-            base.SetTraget(item);
+            base.SetTarget(item);
             if (item == null)
             {
                 return;

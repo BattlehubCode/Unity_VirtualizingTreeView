@@ -194,9 +194,16 @@ namespace Battlehub.UIControls
             private set;
         }
 
-        public ItemArgs(object[] item)
+        public PointerEventData PointerEventData
+        {
+            get;
+            private set;
+        }
+
+        public ItemArgs(object[] item, PointerEventData pointerEventData)
         {
             Items = item;
+            PointerEventData = pointerEventData;
         }
     }
 
@@ -208,8 +215,8 @@ namespace Battlehub.UIControls
             set;
         }
 
-        public ItemDropCancelArgs(object[] dragItems, object dropTarget, ItemDropAction action, bool isExternal)
-            : base(dragItems, dropTarget, action, isExternal)
+        public ItemDropCancelArgs(object[] dragItems, object dropTarget, ItemDropAction action, bool isExternal, PointerEventData pointerEventData)
+            : base(dragItems, dropTarget, action, isExternal, pointerEventData)
         {
 
         }
@@ -258,12 +265,21 @@ namespace Battlehub.UIControls
             private set;
         }
 
-        public ItemDropArgs(object[] dragItems, object dropTarget, ItemDropAction action, bool isExternal)
+
+        public PointerEventData PointerEventData
+        {
+            get;
+            private set;
+        }
+
+
+        public ItemDropArgs(object[] dragItems, object dropTarget, ItemDropAction action, bool isExternal, PointerEventData pointerEventData)
         {
             DragItems = dragItems;
             DropTarget = dropTarget;
             Action = action;
             IsExternal = isExternal;
+            PointerEventData = pointerEventData;
         }
     }
 
@@ -1551,7 +1567,7 @@ namespace Battlehub.UIControls
             }
             if (ItemDoubleClick != null)
             {
-                ItemDoubleClick(this, new ItemArgs(new[] { sender.Item }));
+                ItemDoubleClick(this, new ItemArgs(new[] { sender.Item }, eventData));
             }
         }
 
@@ -1601,7 +1617,7 @@ namespace Battlehub.UIControls
 
             if (ItemBeginDrag != null)
             {
-                ItemBeginDrag(this, new ItemArgs(m_dragItems.Select(di => di.Item).ToArray()));
+                ItemBeginDrag(this, new ItemArgs(m_dragItems.Select(di => di.Item).ToArray(), eventData));
             }
         }
 
@@ -1682,7 +1698,7 @@ namespace Battlehub.UIControls
                     bool cancel = false;
                     if (ItemBeginDrop != null)
                     {
-                        ItemDropCancelArgs args = new ItemDropCancelArgs(m_dragItems.Select(di => di.Item).ToArray(), m_dropTarget.Item, m_dropMarker.Action, false);
+                        ItemDropCancelArgs args = new ItemDropCancelArgs(m_dragItems.Select(di => di.Item).ToArray(), m_dropTarget.Item, m_dropMarker.Action, false, eventData);
                         if (ItemBeginDrop != null)
                         {
                             ItemBeginDrop(this, args);
@@ -1710,12 +1726,12 @@ namespace Battlehub.UIControls
 
                             if (m_dragItems != null && m_dropTarget != null && m_dropMarker != null)
                             {
-                                ItemDrop(this, new ItemDropArgs(m_dragItems.Select(di => di.Item).ToArray(), m_dropTarget.Item, m_dropMarker.Action, false));
+                                ItemDrop(this, new ItemDropArgs(m_dragItems.Select(di => di.Item).ToArray(), m_dropTarget.Item, m_dropMarker.Action, false, eventData));
                             }
                         }
                     }
                 }
-                RaiseEndDrag();
+                RaiseEndDrag(eventData);
             }
             finally
             {
@@ -1729,16 +1745,16 @@ namespace Battlehub.UIControls
             {
                 return;
             }
-            RaiseEndDrag();
+            RaiseEndDrag(eventData);
         }
 
-        private void RaiseEndDrag()
+        private void RaiseEndDrag(PointerEventData pointerEventData)
         {
             if (m_dragItems != null)
             {
                 if (ItemEndDrag != null)
                 {
-                    ItemEndDrag(this, new ItemArgs(m_dragItems.Select(di => di.Item).ToArray()));
+                    ItemEndDrag(this, new ItemArgs(m_dragItems.Select(di => di.Item).ToArray(), pointerEventData));
                 }
                 m_dropMarker.SetTraget(null);
                 m_dragItems = null;
@@ -1764,7 +1780,7 @@ namespace Battlehub.UIControls
                         object item = itemContainer.Item;
                         if (ItemDrop != null)
                         {
-                            ItemDrop(this, new ItemDropArgs(new[] { item }, null, ItemDropAction.SetLastChild, true));
+                            ItemDrop(this, new ItemDropArgs(new[] { item }, null, ItemDropAction.SetLastChild, true, eventData));
                         }
                     }
                 }
@@ -1786,7 +1802,7 @@ namespace Battlehub.UIControls
                     Drop(m_dragItems, m_dropTarget, m_dropMarker.Action);
                     if (ItemDrop != null)
                     {
-                        ItemDrop(this, new ItemDropArgs(m_dragItems.Select(di => di.Item).ToArray(), m_dropTarget.Item, m_dropMarker.Action, false));
+                        ItemDrop(this, new ItemDropArgs(m_dragItems.Select(di => di.Item).ToArray(), m_dropTarget.Item, m_dropMarker.Action, false, eventData));
                     }
                 }
 
