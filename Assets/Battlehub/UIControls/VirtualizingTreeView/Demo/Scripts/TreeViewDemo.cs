@@ -43,7 +43,7 @@ namespace Battlehub.UIControls
             TreeView.ItemDrop += OnItemDrop;
             TreeView.ItemBeginDrop += OnItemBeginDrop;
             TreeView.ItemEndDrag += OnItemEndDrag;
-
+            
 
             //Bind data items
            TreeView.Items = dataItems;

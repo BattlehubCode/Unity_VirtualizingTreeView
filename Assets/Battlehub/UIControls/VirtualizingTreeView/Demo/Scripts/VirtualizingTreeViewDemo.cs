@@ -132,7 +132,7 @@ namespace Battlehub.UIControls
                 text.text = dataItem.name;
 
                 //Load icon from resources
-                Image icon = e.ItemPresenter.GetComponentsInChildren<Image>()[4];
+                Image icon = e.ItemPresenter.GetComponentsInChildren<Image>()[6];
                 icon.sprite = Resources.Load<Sprite>("cube");
 
                 //And specify whether data item has children (to display expander arrow if needed)

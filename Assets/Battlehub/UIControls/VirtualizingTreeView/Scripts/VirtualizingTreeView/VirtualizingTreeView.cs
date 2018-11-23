@@ -474,7 +474,14 @@ namespace Battlehub.UIControls
             else
             {
                 TreeViewItemContainerData containerData = (TreeViewItemContainerData)GetItemContainerData(item);
-                containerData.IsExpanded = true;
+                if (containerData == null)
+                {
+                    Debug.LogWarning("Unable find container data for item " + item);
+                }
+                else
+                {
+                    Internal_Expand(item);
+                }
             }
         }
 
@@ -506,7 +513,7 @@ namespace Battlehub.UIControls
                 VirtualizingItemExpandingArgs args = new VirtualizingItemExpandingArgs(treeViewItemData.Item);
                 ItemExpanding(this, args);
 
-                IEnumerable children = args.Children.OfType<object>().ToArray();
+                IEnumerable children = args.Children == null ? null : args.Children.OfType<object>().ToArray();
                 int itemIndex = IndexOf(treeViewItemData.Item);
 
                 VirtualizingTreeViewItem treeViewItem = (VirtualizingTreeViewItem)GetItemContainer(treeViewItemData.Item);
@@ -579,7 +586,9 @@ namespace Battlehub.UIControls
                 base.DestroyItems(itemsToDestroy.ToArray(), unselect);
             }
 
-            SelectedIndex = IndexOf(SelectedItem);
+            //SelectedIndex = IndexOf(SelectedItem);
+
+            SelectedItems = SelectedItems;
         }
 
         private void Collapse(object[] items)

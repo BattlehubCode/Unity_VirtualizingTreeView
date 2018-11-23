@@ -17,6 +17,7 @@ namespace Battlehub.UIControls
         public bool CanDrag = true;
         public bool CanEdit = true;
         public bool CanDrop = true;
+        public bool CanSelect = true;
 
         public static event EventHandler Selected;
         public static event EventHandler Unselected;
@@ -80,6 +81,11 @@ namespace Battlehub.UIControls
             get { return m_isEditing; }
             set
             {
+                if (Item == null)
+                {
+                    return;
+                }
+
                 if (m_isEditing != value && m_isSelected)
                 {
                     m_isEditing = value && m_isSelected;
@@ -124,6 +130,20 @@ namespace Battlehub.UIControls
                 if (m_itemsControl == null)
                 {
                     m_itemsControl = GetComponentInParent<VirtualizingItemsControl>();
+                    if (m_itemsControl == null)
+                    {
+                        Transform parent = transform.parent;
+                        while (parent != null)
+                        {
+                            m_itemsControl = parent.GetComponent<VirtualizingItemsControl>();
+                            if (m_itemsControl != null)
+                            {
+                                break;
+                            }
+
+                            parent = parent.parent;
+                        }
+                    }
                 }
 
                 return m_itemsControl;
@@ -235,6 +255,11 @@ namespace Battlehub.UIControls
         void IPointerDownHandler.OnPointerDown(PointerEventData eventData)
         {
             m_canBeginEdit = m_isSelected && ItemsControl != null && ItemsControl.SelectedItemsCount == 1 && ItemsControl.CanEdit;
+
+            if (!CanSelect)
+            {
+                return;
+            }
             if (PointerDown != null)
             {
                 PointerDown(this, eventData);
@@ -268,6 +293,11 @@ namespace Battlehub.UIControls
                         m_coBeginEdit = CoBeginEdit();
                         StartCoroutine(m_coBeginEdit);
                     }
+                }
+
+                if (!CanSelect)
+                {
+                    return;
                 }
 
                 if (PointerUp != null)

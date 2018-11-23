@@ -65,8 +65,8 @@
     <Compile Include="Assets\Battlehub\UIControls\Common\InputProviderAdapter.cs" />
     <Compile Include="Assets\Battlehub\UIControls\Common\Repeater.cs" />
     <Compile Include="Assets\Battlehub\UIControls\VirtualizingTreeView\Demo\Scripts\ExternalDragItem.cs" />
-    <Compile Include="Assets\Battlehub\UIControls\VirtualizingTreeView\Demo\Scripts\ReparentAndScrollExample.cs" />
     <Compile Include="Assets\Battlehub\UIControls\VirtualizingTreeView\Demo\Scripts\Rotation.cs" />
+    <Compile Include="Assets\Battlehub\UIControls\VirtualizingTreeView\Demo\Scripts\ToggleGameObjectState.cs" />
     <Compile Include="Assets\Battlehub\UIControls\VirtualizingTreeView\Demo\Scripts\TreeViewDemo.cs" />
     <Compile Include="Assets\Battlehub\UIControls\VirtualizingTreeView\Demo\Scripts\VirtualizingExternalDragItem.cs" />
     <Compile Include="Assets\Battlehub\UIControls\VirtualizingTreeView\Demo\Scripts\VirtualizingTreeViewDemo.cs" />

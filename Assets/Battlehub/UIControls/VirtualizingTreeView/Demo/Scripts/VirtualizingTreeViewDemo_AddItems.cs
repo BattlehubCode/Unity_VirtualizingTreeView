@@ -56,7 +56,7 @@ namespace Battlehub.UIControls
             TreeView.ItemEndDrag += OnItemEndDrag;
 
             m_dataItems = new List<DataItem>();
-            for (int i = 0; i < 100; ++i)
+            for (int i = 0; i < 5; ++i)
             {
                 DataItem dataItem = new DataItem("DataItem " + i);
                 m_dataItems.Add(dataItem);
@@ -84,6 +84,13 @@ namespace Battlehub.UIControls
             DataItem dataItem = (DataItem)e.Item;
             if (dataItem.Children.Count > 0)
             {
+                for (int i = 0; i < 100; i++)
+                {
+                    DataItem item = new DataItem("Added OnItemExpanding " + i);
+                    item.Parent = dataItem;
+                    dataItem.Children.Add(item);
+                }
+
                 //Populate children collection
                 e.Children = dataItem.Children;
             }
@@ -279,25 +286,29 @@ namespace Battlehub.UIControls
         }
 
 
-        private int m_counter = 0;
+        
         public void AddItem()
         {
-            DataItem item = new DataItem("New Item");
-            DataItem parent = m_dataItems[m_counter];
+            DataItem parent = (DataItem)TreeView.SelectedItem;
+            if(parent == null)
+            {
+                parent = TreeView.Items.OfType<DataItem>().First();
+            }
 
-            parent.Children.Add(item);
+            for (int i = 0; i < 1; i++)
+            {
+                DataItem item = new DataItem("New Item " + i);
+                item.Parent = parent;
+                parent.Children.Add(item);
+            }
 
-            TreeView.AddChild(parent, item);
-            TreeView.Internal_Expand(parent);
-
-            DataItem subItem = new DataItem("New Sub Item");
-            item.Children.Add(subItem);
-
-            TreeView.AddChild(item, subItem);
-            TreeView.Internal_Expand(item);
-
-            m_counter++;
-            m_counter %= m_dataItems.Count;
+            VirtualizingItemContainer itemContainer = TreeView.GetItemContainer(parent);
+            if(itemContainer != null)
+            {
+                //Update arrow visiblity
+                TreeView.DataBindItem(parent, itemContainer);
+                TreeView.Expand(parent);
+            }
         }
 
     }

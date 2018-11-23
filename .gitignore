@@ -17,3 +17,5 @@ obj/Debug/Assembly-CSharp.csproj.FileListAbsolute.txt
 obj/Debug/Assembly-CSharp.csprojAssemblyReference.cache
 obj/Debug/Assembly-CSharp.dll
 obj/Debug/Assembly-CSharp.pdb
+obj/Debug/build.force
+obj/Debug/DesignTimeResolveAssemblyReferencesInput.cache

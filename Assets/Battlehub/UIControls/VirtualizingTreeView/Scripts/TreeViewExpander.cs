@@ -53,7 +53,8 @@ namespace Battlehub.UIControls
         {
             if (CanExpand)
             {
-                m_toggle.enabled = true;
+                m_toggle.interactable = true;
+                //m_toggle.enabled = true;
 
                 if (IsOn)
                 {
@@ -74,7 +75,8 @@ namespace Battlehub.UIControls
             {
                 if (m_toggle != null)
                 {
-                    m_toggle.enabled = false;
+                    m_toggle.interactable = false;
+                    //m_toggle.enabled = false;
                 }
                 if (OffGraphic != null)
                 {

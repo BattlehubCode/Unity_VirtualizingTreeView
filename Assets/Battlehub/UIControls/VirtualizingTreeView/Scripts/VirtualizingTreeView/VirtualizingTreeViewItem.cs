@@ -26,30 +26,27 @@ namespace Battlehub.UIControls
             get { return base.Item; }
             set
             {
-                if (base.Item != value)
+                base.Item = value;
+
+
+                m_treeViewItemData = (TreeViewItemContainerData)TreeView.GetItemContainerData(value);
+                if (m_treeViewItemData == null)
                 {
-                    base.Item = value;
+                    m_treeViewItemData = new TreeViewItemContainerData();
+                    name = "Null";
+                    return;
+                }
+                else
+                {
 
-                    m_treeViewItemData = (TreeViewItemContainerData)TreeView.GetItemContainerData(value);
-                    if (m_treeViewItemData == null)
+                    UpdateIndent();
+                    if (m_expander != null)
                     {
-                        m_treeViewItemData = new TreeViewItemContainerData();
-                        name = "Null";
-                        return;
-                    }
-                    else
-                    {
-
-                        UpdateIndent();
-                        if (m_expander != null)
-                        {
-                            m_expander.CanExpand = m_treeViewItemData.CanExpand;
-                            m_expander.IsOn = m_treeViewItemData.IsExpanded && m_treeViewItemData.CanExpand;
-                        }
-
-                        name = base.Item.ToString() + " " + m_treeViewItemData.ToString();
+                        m_expander.CanExpand = m_treeViewItemData.CanExpand;
+                        m_expander.IsOn = m_treeViewItemData.IsExpanded && m_treeViewItemData.CanExpand;
                     }
 
+                    name = base.Item.ToString() + " " + m_treeViewItemData.ToString();
                 }
             }
         }
@@ -164,7 +161,10 @@ namespace Battlehub.UIControls
             {
                 if (base.IsSelected != value)
                 {
-                    m_toggle.isOn = value;
+                    if (m_toggle != null)
+                    {
+                        m_toggle.isOn = value;
+                    }
                     base.IsSelected = value;
                 }
             }
