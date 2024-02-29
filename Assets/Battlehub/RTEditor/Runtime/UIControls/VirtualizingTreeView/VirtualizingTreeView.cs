@@ -97,24 +97,24 @@ namespace Battlehub.UIControls
             get { return m_parent; }
             set
             {
-                if(m_parent == value)
+                if (m_parent == value)
                 {
                     return;
                 }
 
-                if(Internal_RaiseEvents)
+                if (Internal_RaiseEvents)
                 {
                     if (ParentChanging != null)
                     {
                         ParentChanging(this, new VirtualizingParentChangedEventArgs(m_parent, value));
                     }
                 }
-               
+
 
                 TreeViewItemContainerData oldParent = m_parent;
                 m_parent = value;
 
-                if(Internal_RaiseEvents)
+                if (Internal_RaiseEvents)
                 {
                     if (ParentChanged != null)
                     {
@@ -129,7 +129,7 @@ namespace Battlehub.UIControls
         {
             get
             {
-                if(m_parent == null)
+                if (m_parent == null)
                 {
                     return null;
                 }
@@ -159,6 +159,18 @@ namespace Battlehub.UIControls
         /// Is TreeViewItem expanded ?
         /// </summary>
         public bool IsExpanded
+        {
+            get;
+            set;
+        }
+
+        public bool CanChangeParent
+        {
+            get;
+            set;
+        }
+
+        public bool CanBeParent
         {
             get;
             set;
@@ -200,7 +212,7 @@ namespace Battlehub.UIControls
         /// </summary>
         public bool HasChildren(VirtualizingTreeView treeView)
         {
-            if(treeView == null)
+            if (treeView == null)
             {
                 return false;
             }
@@ -408,7 +420,7 @@ namespace Battlehub.UIControls
                 else
                 {
                     VirtualizingTreeViewItem parentContainer = (VirtualizingTreeViewItem)GetItemContainer(parent);
-                    if(parentContainer != null)
+                    if (parentContainer != null)
                     {
                         parentContainer.CanExpand = true;
                     }
@@ -543,9 +555,8 @@ namespace Battlehub.UIControls
             else
             {
                 TreeViewItemContainerData containerData = (TreeViewItemContainerData)GetItemContainerData(item);
-                if(containerData == null)
+                if (containerData == null)
                 {
-                    Debug.LogWarning("Unable find container data for item " + item);
                     return false;
                 }
                 else
@@ -557,17 +568,17 @@ namespace Battlehub.UIControls
         }
 
         /// <summary>
-        /// To prevent Expand method call during drag drop operation 
+        /// To prevent Expanding event handler call during drag drop operation 
         /// </summary>
         private bool m_expandSilently;
         public void Internal_Expand(object item)
         {
             TreeViewItemContainerData treeViewItemData = (TreeViewItemContainerData)GetItemContainerData(item);
-            if(treeViewItemData == null)
+            if (treeViewItemData == null)
             {
                 throw new ArgumentException("TreeViewItemContainerData not found", "item");
             }
-            if(treeViewItemData.IsExpanded)
+            if (treeViewItemData.IsExpanded)
             {
                 return;
             }
@@ -575,6 +586,10 @@ namespace Battlehub.UIControls
 
             if (m_expandSilently)
             {
+                if (ItemExpanded != null)
+                {
+                    ItemExpanded(this, new VirtualizingItemExpandingArgs(treeViewItemData.Item));
+                }
                 return;
             }
 
@@ -587,7 +602,7 @@ namespace Battlehub.UIControls
                 int itemIndex = IndexOf(treeViewItemData.Item);
 
                 VirtualizingTreeViewItem treeViewItem = (VirtualizingTreeViewItem)GetItemContainer(treeViewItemData.Item);
-                if(treeViewItem != null)
+                if (treeViewItem != null)
                 {
                     treeViewItem.CanExpand = children != null;
                 }
@@ -625,7 +640,7 @@ namespace Battlehub.UIControls
                 }
             }
 
-           
+
         }
 
         public void Collapse(object item)
@@ -643,16 +658,17 @@ namespace Battlehub.UIControls
 
         public void Internal_Collapse(object item)
         {
-            if(ItemCollapsing != null)
+            TreeViewItemContainerData treeViewItemData = (TreeViewItemContainerData)GetItemContainerData(item);
+            if (treeViewItemData == null)
+            {
+                return;
+            }
+
+            if (ItemCollapsing != null)
             {
                 ItemCollapsing(this, new VirtualizingItemCollapsedArgs(item));
             }
 
-            TreeViewItemContainerData treeViewItemData = (TreeViewItemContainerData)GetItemContainerData(item);
-            if (treeViewItemData == null)
-            {
-                throw new ArgumentException("TreeViewItemContainerData not found", "item");
-            }
             if (!treeViewItemData.IsExpanded)
             {
                 return;
@@ -663,7 +679,7 @@ namespace Battlehub.UIControls
             List<object> itemsToDestroy = new List<object>();
             Collapse(treeViewItemData, itemIndex + 1, itemsToDestroy);
 
-            if(itemsToDestroy.Count > 0)
+            if (itemsToDestroy.Count > 0)
             {
                 bool unselect = false;
                 base.DestroyItems(itemsToDestroy.ToArray(), unselect);
@@ -677,14 +693,15 @@ namespace Battlehub.UIControls
             }
         }
 
+
         private void Collapse(object[] items)
         {
             List<object> itemsToDestroy = new List<object>();
-            
+
             for (int i = 0; i < items.Length; ++i)
             {
                 int itemIndex = IndexOf(items[i]);
-                if(itemIndex < 0)
+                if (itemIndex < 0)
                 {
                     continue;
                 }
@@ -697,6 +714,40 @@ namespace Battlehub.UIControls
                 bool unselect = false;
                 base.DestroyItems(itemsToDestroy.ToArray(), unselect);
             }
+        }
+
+        public override void SetItems(IEnumerable value, bool resetSelection)
+        {
+            if (ItemCollapsing != null || ItemCollapsed != null)
+            {
+                foreach (TreeViewItemContainerData itemData in GetItemContainerData().ToArray())
+                {
+                    if (itemData != null && itemData.IsExpanded)
+                    {
+                        VirtualizingItemCollapsedArgs args = new VirtualizingItemCollapsedArgs(itemData.Item);
+                        ItemCollapsing?.Invoke(this, args);
+                        ItemCollapsed?.Invoke(this, args);
+                    }
+                }
+            }
+
+            base.SetItems(value, resetSelection);
+        }
+
+        protected override void RemoveItemContainerData(object item)
+        {
+            if (ItemCollapsing != null || ItemCollapsed != null)
+            {
+                TreeViewItemContainerData itemData = (TreeViewItemContainerData)GetItemContainerData(item);
+                if (itemData != null && itemData.IsExpanded)
+                {
+                    VirtualizingItemCollapsedArgs args = new VirtualizingItemCollapsedArgs(item);
+                    ItemCollapsing?.Invoke(this, args);
+                    ItemCollapsed?.Invoke(this, args);
+                }
+            }
+
+            base.RemoveItemContainerData(item);
         }
 
         private void Collapse(TreeViewItemContainerData item, int itemIndex, List<object> itemsToDestroy)
@@ -716,6 +767,7 @@ namespace Battlehub.UIControls
 
         public override void DataBindItem(object item, VirtualizingItemContainer itemContainer)
         {
+            base.DataBindItem(item, itemContainer);
             itemContainer.Clear();
 
             if (item != null)
@@ -735,6 +787,10 @@ namespace Battlehub.UIControls
                 treeViewItem.CanChangeParent = args.CanChangeParent;
                 treeViewItem.CanSelect = args.CanSelect;
                 treeViewItem.UpdateIndent();
+
+                TreeViewItemContainerData containerData = (TreeViewItemContainerData)GetItemContainerData(item);
+                containerData.CanChangeParent = args.CanChangeParent;
+                containerData.CanBeParent = args.CanBeParent;
             }
             else
             {
@@ -885,7 +941,7 @@ namespace Battlehub.UIControls
                 base.SetNextSiblingInternal(prev, child);
 
                 tvItem = (VirtualizingTreeViewItem)GetItemContainer(child.Item);
-                if(tvItem != null)
+                if (tvItem != null)
                 {
                     tvItem.UpdateIndent();
                 }
@@ -901,7 +957,7 @@ namespace Battlehub.UIControls
 
         protected override bool CanDrop(ItemContainerData[] dragItems, ItemContainerData dropTarget)
         {
-            if(base.CanDrop(dragItems, dropTarget))
+            if (base.CanDrop(dragItems, dropTarget))
             {
                 TreeViewItemContainerData tvDropTarget = (TreeViewItemContainerData)dropTarget;
                 for (int i = 0; i < dragItems.Length; ++i)
@@ -979,7 +1035,6 @@ namespace Battlehub.UIControls
             }
         }
 
-
         protected override void SetPrevSiblingInternal(ItemContainerData sibling, ItemContainerData prevSibling)
         {
             TreeViewItemContainerData tvSiblingData = (TreeViewItemContainerData)sibling;
@@ -1036,12 +1091,12 @@ namespace Battlehub.UIControls
 
             base.DestroyItems(items, unselect);
 
-            foreach(TreeViewItemContainerData parent in parents)
+            foreach (TreeViewItemContainerData parent in parents)
             {
-                if(!parent.HasChildren(this))
+                if (!parent.HasChildren(this))
                 {
                     VirtualizingTreeViewItem treeViewItem = (VirtualizingTreeViewItem)GetItemContainer(parent.Item);
-                    if(treeViewItem != null)
+                    if (treeViewItem != null)
                     {
                         treeViewItem.CanExpand = false;
                     }
@@ -1057,10 +1112,15 @@ namespace Battlehub.UIControls
 
         public void ScrollIntoView(object obj)
         {
+            if (!isActiveAndEnabled)
+            {
+                return;
+            }
+
             int index = IndexOf(obj);
             if (index < 0)
             {
-                throw new InvalidOperationException(string.Format("item {0} does not exist or not visible", obj));
+                return;
             }
             VirtualizingScrollRect scrollRect = GetComponentInChildren<VirtualizingScrollRect>();
             scrollRect.Index = index;
@@ -1069,7 +1129,7 @@ namespace Battlehub.UIControls
 
     public static class VirtualizingTreeViewExtension
     {
-        public static void ExpandTo<T>(this VirtualizingTreeView treeView, T item, Func<T,T> getParent)
+        public static void ExpandTo<T>(this VirtualizingTreeView treeView, T item, Func<T, T> getParent)
         {
             if (item == null)
             {
@@ -1101,7 +1161,7 @@ namespace Battlehub.UIControls
             }
         }
 
-        public static void ExpandAll<T>(this VirtualizingTreeView treeView, T item, Func<T,T> getParent, Func<T, IEnumerable> getChildren)
+        public static void ExpandAll<T>(this VirtualizingTreeView treeView, T item, Func<T, T> getParent, Func<T, IEnumerable> getChildren)
         {
             treeView.ExpandTo(getParent(item), getParent);
             treeView.ExpandChildren(item, getChildren);
@@ -1109,7 +1169,7 @@ namespace Battlehub.UIControls
 
         public static void ItemDropStdHandler<T>(this VirtualizingTreeView treeView, ItemDropArgs e,
             Func<T, T> getParent,
-            Action<T, T> setParent,
+            Action<T, T> setParent, //useless TODO: Remove
             Func<T, T, int> indexOfChild,
             Action<T, T> removeChild,
             Action<T, T, int> insertChild,
@@ -1125,13 +1185,13 @@ namespace Battlehub.UIControls
                     T dragItem = (T)e.DragItems[i];
                     removeChild(dragItem, getParent(dragItem));
                     setParent(dragItem, dropTarget);
-                    if(addChild != null)
+                    if (addChild != null)
                     {
-                        addChild(dragItem, getParent(dragItem));
+                        addChild(dragItem, dropTarget);
                     }
                     else
                     {
-                        insertChild(dragItem, getParent(dragItem), 0);
+                        insertChild(dragItem, dropTarget, 0);
                     }
                 }
             }
@@ -1142,25 +1202,27 @@ namespace Battlehub.UIControls
                 for (int i = e.DragItems.Length - 1; i >= 0; --i)
                 {
                     T dragItem = (T)e.DragItems[i];
-                    int dropTIndex = indexOfChild(dropTarget, getParent(dropTarget));
-                    if (getParent(dragItem) != getParent(dropTarget))
+                    T newParent = getParent(dropTarget);
+                    T parent = getParent(dragItem);
+                    int dropTIndex = indexOfChild(dropTarget, newParent);
+                    if (parent != newParent)
                     {
-                        removeChild(dragItem, getParent(dragItem));
-                        setParent(dragItem, getParent(dropTarget));
-                        insertChild(dragItem, getParent(dragItem), dropTIndex + 1);
+                        removeChild(dragItem, parent);
+                        setParent(dragItem, newParent);
+                        insertChild(dragItem, newParent, dropTIndex + 1);
                     }
                     else
                     {
-                        int dragTIndex = indexOfChild(dragItem, getParent(dragItem));
+                        int dragTIndex = indexOfChild(dragItem, parent);
                         if (dropTIndex < dragTIndex)
                         {
-                            removeChild(dragItem, getParent(dragItem));
-                            insertChild(dragItem, getParent(dragItem), dropTIndex + 1);
+                            removeChild(dragItem, parent);
+                            insertChild(dragItem, parent, dropTIndex + 1);
                         }
                         else
                         {
-                            removeChild(dragItem, getParent(dragItem));
-                            insertChild(dragItem, getParent(dragItem), dropTIndex);
+                            removeChild(dragItem, parent);
+                            insertChild(dragItem, parent, dropTIndex);
                         }
                     }
                 }
@@ -1172,24 +1234,27 @@ namespace Battlehub.UIControls
                 for (int i = 0; i < e.DragItems.Length; ++i)
                 {
                     T dragItem = (T)e.DragItems[i];
-                    if (getParent(dragItem) != getParent(dropTarget))
+                    T newParent = getParent(dropTarget);
+                    T parent = getParent(dragItem);
+                    if (parent != newParent)
                     {
-                        removeChild(dragItem, getParent(dragItem));
-                        setParent(dragItem, getParent(dropTarget));
-                        insertChild(dragItem, getParent(dragItem), 0);
+                        removeChild(dragItem, parent);
+                        setParent(dragItem, newParent);
+                        insertChild(dragItem, newParent, 0);
                     }
 
-                    int dropTIndex = indexOfChild(dropTarget, getParent(dropTarget));
-                    int dragTIndex = indexOfChild(dragItem, getParent(dragItem));
+                    parent = getParent(dragItem);
+                    int dropTIndex = indexOfChild(dropTarget, newParent);                   
+                    int dragTIndex = indexOfChild(dragItem, parent);
                     if (dropTIndex > dragTIndex)
                     {
-                        removeChild(dragItem, getParent(dragItem));
-                        insertChild(dragItem, getParent(dragItem), dropTIndex - 1);
+                        removeChild(dragItem, parent);
+                        insertChild(dragItem, parent, dropTIndex - 1);
                     }
                     else
                     {
-                        removeChild(dragItem, getParent(dragItem));
-                        insertChild(dragItem, getParent(dragItem), dropTIndex);
+                        removeChild(dragItem, parent);
+                        insertChild(dragItem, parent, dropTIndex);
                     }
                 }
             }

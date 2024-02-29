@@ -408,12 +408,17 @@ namespace Battlehub.UIControls
         /// </summary>
         public event EventHandler<SelectionChangedArgs> SelectionChanged;
 
+        public event EventHandler<ItemArgs> ItemContextMenu;
 
         /// <summary>
         /// Raised on item double click
         /// </summary>
         public event EventHandler<ItemArgs> ItemDoubleClick;
 
+        public event EventHandler<ItemArgs> ItemPointerEnter;
+        public event EventHandler<ItemArgs> ItemPointerDown;
+        public event EventHandler<ItemArgs> ItemPointerUp;
+        public event EventHandler<ItemArgs> ItemPointerExit;
 
         /// <summary>
         /// Raise before items removed
@@ -1217,6 +1222,7 @@ namespace Battlehub.UIControls
             ItemContainer.PointerDown += OnItemPointerDown;
             ItemContainer.PointerEnter += OnItemPointerEnter;
             ItemContainer.PointerExit += OnItemPointerExit;
+            ItemContainer.ContextMenu += OnItemContextMenu;
             ItemContainer.DoubleClick += OnItemDoubleClick;
             ItemContainer.BeginEdit += OnItemBeginEdit;
             ItemContainer.EndEdit += OnItemEndEdit;
@@ -1236,6 +1242,7 @@ namespace Battlehub.UIControls
             ItemContainer.PointerDown -= OnItemPointerDown;
             ItemContainer.PointerEnter -= OnItemPointerEnter;
             ItemContainer.PointerExit -= OnItemPointerExit;
+            ItemContainer.ContextMenu -= OnItemContextMenu;
             ItemContainer.DoubleClick -= OnItemDoubleClick;
             ItemContainer.BeginEdit -= OnItemBeginEdit;
             ItemContainer.EndEdit -= OnItemEndEdit;
@@ -1476,6 +1483,11 @@ namespace Battlehub.UIControls
                     sender.IsSelected = true;
                 }
             }
+
+            if (ItemPointerDown != null)
+            {
+                ItemPointerDown(this, new ItemArgs(new[] { sender.Item }, e));
+            }
         }
 
         /// <summary>
@@ -1531,6 +1543,10 @@ namespace Battlehub.UIControls
                 }
             }
 
+            if (ItemPointerUp != null)
+            {
+                ItemPointerUp(this, new ItemArgs(new[] { sender.Item }, e));
+            }
         }
 
         /// <summary>
@@ -1551,6 +1567,14 @@ namespace Battlehub.UIControls
                     m_dropMarker.SetTraget(m_dropTarget);
                 }
             }
+
+            if (m_dragItems == null)
+            {
+                if (ItemPointerEnter != null)
+                {
+                    ItemPointerEnter(this, new ItemArgs(new[] { sender.Item }, eventData));
+                }
+            }
         }
 
         /// <summary>
@@ -1567,6 +1591,37 @@ namespace Battlehub.UIControls
             {
                 m_dropMarker.SetTraget(null);
             }
+
+            if (m_dragItems == null)
+            {
+                if (ItemPointerExit != null)
+                {
+                    ItemPointerExit(this, new ItemArgs(new[] { sender.Item }, eventData));
+                }
+            }
+        }
+
+        private void OnItemContextMenu(ItemContainer sender, PointerEventData eventData)
+        {
+            if (!CanHandleEvent(sender))
+            {
+                return;
+            }
+
+            if (m_dragItems != null)
+            {
+                return;
+            }
+
+            if (!RectTransformUtility.RectangleContainsScreenPoint(sender.RectTransform, eventData.position, Camera))
+            {
+                return;
+            }
+
+            if (ItemContextMenu != null)
+            {
+                ItemContextMenu(this, new ItemArgs(new[] { sender.Item }, eventData));
+            }
         }
 
         /// <summary>
@@ -1580,6 +1635,12 @@ namespace Battlehub.UIControls
             {
                 return;
             }
+
+            if (m_dragItems != null)
+            {
+                return;
+            }
+
             if (ItemDoubleClick != null)
             {
                 ItemDoubleClick(this, new ItemArgs(new[] { sender.Item }, eventData));

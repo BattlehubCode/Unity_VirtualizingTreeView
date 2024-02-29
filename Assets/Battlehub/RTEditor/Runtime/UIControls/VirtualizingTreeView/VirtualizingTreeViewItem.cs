@@ -28,7 +28,6 @@ namespace Battlehub.UIControls
             {
                 base.Item = value;
 
-            
                 m_treeViewItemData = (TreeViewItemContainerData)TreeView.GetItemContainerData(value);
                 if (m_treeViewItemData == null)
                 {
@@ -40,16 +39,14 @@ namespace Battlehub.UIControls
                 {
 
                     UpdateIndent();
-                    if (m_expander != null)
-                    {
-                        m_expander.CanExpand = m_treeViewItemData.CanExpand;
-                        m_expander.IsOn = m_treeViewItemData.IsExpanded && m_treeViewItemData.CanExpand;
-                    }
+                    UpdateExpander();
 
                     name = base.Item.ToString() + " " + m_treeViewItemData.ToString();
                 }
             }
         }
+
+       
 
         private TreeViewItemContainerData m_treeViewItemData;
         public TreeViewItemContainerData TreeViewItemData
@@ -77,6 +74,15 @@ namespace Battlehub.UIControls
                 
                 m_treeViewItemData.Parent = value;             
                 UpdateIndent();
+            }
+        }
+
+        private void UpdateExpander()
+        {
+            if (m_expander != null)
+            {
+                m_expander.CanExpand = CanExpand;
+                m_expander.IsOn = IsExpanded && CanExpand;
             }
         }
 
@@ -300,14 +306,13 @@ namespace Battlehub.UIControls
             m_toggle.isOn = IsSelected;
 
             m_expander = GetComponentInChildren<TreeViewExpander>();
-            if (m_expander != null)
-            {
-                m_expander.CanExpand = CanExpand;
-            }
+            UpdateExpander();
         }
 
         protected override void StartOverride()
         {
+            base.StartOverride();
+
             if (TreeView != null)
             {
                 m_toggle.isOn = TreeView.IsItemSelected(Item);
@@ -334,7 +339,7 @@ namespace Battlehub.UIControls
         {
             /// This is dirty fix of wrong selection after databinding (in runtime editor such buggy behavior can be reproduced by filtering hierarchy)
             /// TODO: replace with something better
-            if (IsSelected != m_treeViewItemData.IsSelected)
+            if (m_treeViewItemData != null && IsSelected != m_treeViewItemData.IsSelected)
             {
                 IsSelected = m_treeViewItemData.IsSelected;
             }

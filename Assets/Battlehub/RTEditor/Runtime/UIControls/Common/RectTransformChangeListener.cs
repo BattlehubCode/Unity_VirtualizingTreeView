@@ -1,6 +1,4 @@
-﻿using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.UI;
+﻿using UnityEngine.EventSystems;
 
 namespace Battlehub.UIControls
 {
@@ -10,6 +8,11 @@ namespace Battlehub.UIControls
     {
         public event RectTransformChanged RectTransformChanged;
 
+        protected override void Start()
+        {
+            base.Start();
+            RaiseRectTransformChanged();
+        }
         protected override void OnRectTransformDimensionsChange()
         {
             RaiseRectTransformChanged();

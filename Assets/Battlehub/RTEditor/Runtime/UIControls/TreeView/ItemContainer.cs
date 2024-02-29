@@ -19,6 +19,7 @@ namespace Battlehub.UIControls
         public static event EventHandler Unselected;
         public static event ItemEventHandler PointerDown;
         public static event ItemEventHandler PointerUp;
+        public static event ItemEventHandler ContextMenu;
         public static event ItemEventHandler DoubleClick;
         public static event ItemEventHandler PointerEnter;
         public static event ItemEventHandler PointerExit;
@@ -205,7 +206,6 @@ namespace Battlehub.UIControls
             IsEditing = CanEdit;
         }
 
-      
         void IPointerDownHandler.OnPointerDown(PointerEventData eventData)
         {
             m_canBeginEdit = m_isSelected && ItemsControl != null && ItemsControl.SelectedItemsCount == 1 && ItemsControl.CanEdit;
@@ -215,28 +215,30 @@ namespace Battlehub.UIControls
             }
         }
 
-
         void IPointerUpHandler.OnPointerUp(PointerEventData eventData)
         {
-            if(eventData.clickCount == 2)
+            if (eventData.clickCount == 2)
             {
-                if(DoubleClick != null)
+                if (eventData.button == PointerEventData.InputButton.Left)
                 {
-                    DoubleClick(this, eventData);
-                }
-
-                if(CanEdit)
-                {
-                    if (m_coBeginEdit != null)
+                    if (DoubleClick != null)
                     {
-                        StopCoroutine(m_coBeginEdit);
-                        m_coBeginEdit = null;
+                        DoubleClick(this, eventData);
+                    }
+
+                    if (CanEdit)
+                    {
+                        if (m_coBeginEdit != null)
+                        {
+                            StopCoroutine(m_coBeginEdit);
+                            m_coBeginEdit = null;
+                        }
                     }
                 }
             }
             else
             {
-                if(m_canBeginEdit)
+                if (m_canBeginEdit)
                 {
                     if (m_coBeginEdit == null)
                     {
@@ -249,13 +251,24 @@ namespace Battlehub.UIControls
                 {
                     PointerUp(this, eventData);
                 }
+
+                if (eventData.button == PointerEventData.InputButton.Right)
+                {
+                    if (ContextMenu != null)
+                    {
+                        ContextMenu(this, eventData);
+                    }
+                }
             }
-            
-             
         }
 
         void IBeginDragHandler.OnBeginDrag(PointerEventData eventData)
         {
+            if (eventData.button != PointerEventData.InputButton.Left)
+            {
+                return;
+            }
+            
             if (!CanDrag)
             {
                 ExecuteEvents.ExecuteHierarchy(transform.parent.gameObject, eventData, ExecuteEvents.beginDragHandler);
@@ -285,6 +298,11 @@ namespace Battlehub.UIControls
 
         void IDragHandler.OnDrag(PointerEventData eventData)
         {
+            if (eventData.button != PointerEventData.InputButton.Left)
+            {
+                return;
+            }
+
             if (!CanDrag)
             {
                 ExecuteEvents.ExecuteHierarchy(transform.parent.gameObject, eventData, ExecuteEvents.dragHandler);
@@ -298,6 +316,11 @@ namespace Battlehub.UIControls
 
         void IEndDragHandler.OnEndDrag(PointerEventData eventData)
         {
+            if (eventData.button != PointerEventData.InputButton.Left)
+            {
+                return;
+            }
+
             if (!CanDrag)
             {
                 ExecuteEvents.ExecuteHierarchy(transform.parent.gameObject, eventData, ExecuteEvents.endDragHandler);

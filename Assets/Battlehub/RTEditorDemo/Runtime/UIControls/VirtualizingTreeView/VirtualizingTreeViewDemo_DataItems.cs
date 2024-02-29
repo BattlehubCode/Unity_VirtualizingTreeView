@@ -7,11 +7,6 @@ using UnityEngine.UI;
 
 namespace Battlehub.UIControls
 {
-    public class TreeViewState : ScriptableObject
-    {
-        public List<DataItem> Items;
-    }
-
     public class DataItem
     {
         public string Name;
@@ -44,15 +39,8 @@ namespace Battlehub.UIControls
 
         private List<DataItem> m_dataItems;
 
-        /*
-        private IProject m_project;*/
-
-        //private IEnumerator Start()
         private void Start()
         {
-            /*m_project = IOC.Resolve<IProject>();
-            yield return m_project.OpenProject("Test");*/
-
             TreeView.ItemDataBinding += OnItemDataBinding;
             TreeView.SelectionChanged += OnSelectionChanged;
             TreeView.ItemsRemoved += OnItemsRemoved;
@@ -113,11 +101,6 @@ namespace Battlehub.UIControls
 
         private void OnSelectionChanged(object sender, SelectionChangedArgs e)
         {
-            #if UNITY_EDITOR
-            //Do something on selection changed (just syncronized with editor's hierarchy for demo purposes)
-           // UnityEditor.Selection.objects = e.NewItems.OfType<GameObject>().ToArray();
-            #endif
-
             if(m_buttons != null)
             {
                 m_buttons.SetActive(TreeView.SelectedItem != null);
@@ -144,6 +127,8 @@ namespace Battlehub.UIControls
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
+        /// 
+
         private void OnItemDataBinding(object sender, VirtualizingTreeViewItemDataBindingArgs e)
         {
             DataItem dataItem = e.Item as DataItem;
@@ -154,12 +139,19 @@ namespace Battlehub.UIControls
                 text.text = dataItem.Name;
 
                 //Load icon from resources
-                Image icon = e.ItemPresenter.GetComponentsInChildren<Image>()[4];
+                Image icon = e.ItemPresenter.GetComponentsInChildren<Image>(true)[4];
                 icon.sprite = Resources.Load<Sprite>("IconNew");
 
                 //And specify whether data item has children (to display expander arrow if needed)
                 e.HasChildren = m_filteredItems.Count == 0 && dataItem.Children.Count > 0;
-            }
+
+                //if (CanvasUpdateRegistry.IsRebuildingLayout())
+                //{
+                //    await Task.Yield();
+                //}
+
+                //icon.gameObject.SetActive(false);
+            }     
         }
 
         private void OnItemBeginDrop(object sender, ItemDropCancelArgs e)
@@ -169,7 +161,7 @@ namespace Battlehub.UIControls
 
         private void OnItemBeginDrag(object sender, ItemArgs e)
         {
-            //Could be used to change cursor
+            
         }
 
         private void OnItemEndDrag(object sender, ItemArgs e)

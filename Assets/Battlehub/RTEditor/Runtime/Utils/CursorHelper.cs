@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 namespace Battlehub.Utils
 {
@@ -8,18 +9,37 @@ namespace Battlehub.Utils
         VResize,
         HResize,
         DropNotAllowed,
-        DropAllowed
+        DropAllowed,
+        None,
     }
 
     public class CursorHelper
     {
-        private object m_locker;
+        private object m_lock;
         private Texture2D m_texture;
 
         private readonly Dictionary<KnownCursor, Texture2D> m_knownCursorToTexture = new Dictionary<KnownCursor, Texture2D>();
+
+        [Obsolete("Renamed to SetCursorTexture")] //13.11.2020
         public void Map(KnownCursor cursorType, Texture2D texture)
         {
+            SetCursorTexture(cursorType, texture);
+        }
+
+        [Obsolete("Renamed to ClearCursorTextures")] //13.11.2020
+        public void Reset()
+        {
+            ClearCursorTextures();
+        }
+
+        public void SetCursorTexture(KnownCursor cursorType, Texture2D texture)
+        {
             m_knownCursorToTexture[cursorType] = texture;
+        }
+
+        public void ClearCursorTextures()
+        {
+            m_knownCursorToTexture.Clear();
         }
 
         private Texture2D m_defaultCursorTexture;
@@ -45,68 +65,65 @@ namespace Battlehub.Utils
             ResetCursor(null);
         }
 
-        public void Reset()
+        public bool SetCursor(object locker, KnownCursor cursorType)
         {
-            m_knownCursorToTexture.Clear();
+            return SetCursor(locker, cursorType, new Vector2(0.5f, 0.5f), CursorMode.Auto);
         }
 
-        public void SetCursor(object locker, KnownCursor cursorType)
-        {
-            SetCursor(locker, cursorType, new Vector2(0.5f, 0.5f), CursorMode.Auto);
-        }
-
-        public void SetCursor(object locker, KnownCursor cursorType, Vector2 hotspot, CursorMode mode)
+        public bool SetCursor(object locker, KnownCursor cursorType, Vector2 hotspot, CursorMode mode)
         {
             Texture2D texture;
             if(!m_knownCursorToTexture.TryGetValue(cursorType, out texture))
             {
                 texture = null;
             }
-            SetCursor(locker, texture, hotspot, mode);
+            return SetCursor(locker, texture, hotspot, mode);
         }
 
-        public void SetCursor(object locker, Texture2D texture)
+        public bool SetCursor(object locker, Texture2D texture)
         {
-            SetCursor(locker, texture, new Vector2(0.5f, 0.5f), CursorMode.Auto);
+            return SetCursor(locker, texture, new Vector2(0.5f, 0.5f), CursorMode.Auto);
         }
 
-        public void SetCursor(object locker, Texture2D texture, Vector2 hotspot, CursorMode mode)
+        public bool SetCursor(object locker, Texture2D texture, Vector2 hotspot, CursorMode mode)
         {
-            if (m_locker != null && m_locker != locker)
+            if (m_lock != null && m_lock != locker)
             {
-                return;
+                return false;
             }
 
-            if(texture != null)
+            if (texture != null)
             {
                 hotspot = new Vector2(texture.width * hotspot.x, texture.height * hotspot.y);
-            } 
-            else 
+            }
+            else
             {
                 texture = DefaultCursorTexture;
-                if(texture != null)
+                if (texture != null)
                 {
                     hotspot = new Vector2(texture.width * DefaultCursorHotspot.x, texture.height * DefaultCursorHotspot.y);
                 }
             }
 
-            m_locker = locker;
-            if(m_texture != texture)
+            m_lock = locker;
+            if (m_texture != texture)
             {
                 Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
                 Cursor.SetCursor(texture, hotspot, mode);
                 m_texture = texture;
+                return true;
             }
+
+            return false;
         }
 
         public void ResetCursor(object locker)
         {            
-            if (m_locker != locker)
+            if (m_lock != locker)
             {
                 return;
             }
-            m_locker = null;
-
+            m_lock = null;
             SetCursor(null, DefaultCursorTexture, DefaultCursorHotspot, CursorMode.Auto);
         }
     }

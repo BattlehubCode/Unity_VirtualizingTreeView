@@ -8,6 +8,10 @@ namespace Battlehub.UIControls
         private VirtualizingTreeView m_treeView;
         private RectTransform m_siblingGraphicsRectTransform;
         public GameObject ChildGraphics;
+
+        private bool m_canChangeDragItemParent;
+        private bool m_canSetDragItemSiblingIndex;
+
         public override ItemDropAction Action
         {
             get { return base.Action; }
@@ -15,7 +19,7 @@ namespace Battlehub.UIControls
             {
                 base.Action = value;
                 ChildGraphics.SetActive(base.Action == ItemDropAction.SetLastChild);
-                SiblingGraphics.SetActive(base.Action != ItemDropAction.SetLastChild);
+                SiblingGraphics.SetActive(base.Action != ItemDropAction.SetLastChild && base.Action != ItemDropAction.None);
             }
         }
 
@@ -40,15 +44,19 @@ namespace Battlehub.UIControls
             }
         }
 
-        public override void SetTarget(VirtualizingItemContainer item)
+        public override void SetTarget(VirtualizingItemContainer target)
         {
-            base.SetTarget(item);
-            if(item == null)
+            base.SetTarget(target);
+
+            m_canChangeDragItemParent = false;
+            m_canSetDragItemSiblingIndex = false;
+
+            if (target == null)
             {
                 return;
             }
 
-            VirtualizingTreeViewItem tvItem = (VirtualizingTreeViewItem)item;
+            VirtualizingTreeViewItem tvItem = (VirtualizingTreeViewItem)Target;
             if (tvItem != null)
             {
                 m_siblingGraphicsRectTransform.offsetMin = new Vector2(tvItem.Indent, m_siblingGraphicsRectTransform.offsetMin.y);
@@ -57,24 +65,52 @@ namespace Battlehub.UIControls
             {
                 m_siblingGraphicsRectTransform.offsetMin = new Vector2(0, m_siblingGraphicsRectTransform.offsetMin.y);
             }
+
+            if(Target != null)
+            {
+                m_canChangeDragItemParent = true;
+                m_canSetDragItemSiblingIndex = true;
+
+                if(DragItems != null)
+                {
+                    ItemContainerData[] data = DragItems;
+                    for (int i = 0; i < data.Length; ++i)
+                    {
+                        TreeViewItemContainerData treeViewItemData = (TreeViewItemContainerData)data[i];
+                        if (!treeViewItemData.CanChangeParent)
+                        {
+                            object parentItem = tvItem.Parent != null ? tvItem.Parent.Item : null;
+                            if (treeViewItemData.ParentItem != parentItem)
+                            {
+                                m_canSetDragItemSiblingIndex = false;
+                            }
+
+                            if (treeViewItemData.ParentItem != Target.Item)
+                            {
+                                m_canChangeDragItemParent = false;
+                            }
+
+                            if (!m_canSetDragItemSiblingIndex && !m_canChangeDragItemParent)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
 
         public override void SetPosition(Vector2 position)
         {
-            if (Item == null)
+            if (!m_canChangeDragItemParent && !m_canSetDragItemSiblingIndex)
             {
+                Action = ItemDropAction.None;
                 return;
             }
 
-            if (!m_treeView.CanReparent || !Item.CanChangeParent)
-            {
-                base.SetPosition(position);
-                return;
-            }
-
-            RectTransform rt = Item.RectTransform;
-            VirtualizingTreeViewItem tvItem = (VirtualizingTreeViewItem)Item;
+            RectTransform rt = Target.RectTransform;
+            VirtualizingTreeViewItem tvItem = (VirtualizingTreeViewItem)Target;
 
             Vector2 sizeDelta = m_rectTransform.sizeDelta;
             sizeDelta.y = rt.rect.height;
@@ -91,10 +127,11 @@ namespace Battlehub.UIControls
                 camera = m_treeView.Camera;
             }
 
-            if (!m_treeView.CanReorder)
+            if (!m_treeView.CanReorder || !m_canSetDragItemSiblingIndex)
             {
-                if (!tvItem.CanBeParent)
+                if (!Target.CanBeParent || !m_treeView.CanReparent)
                 {
+                    Action = ItemDropAction.None;
                     return;
                 }
 
@@ -105,26 +142,69 @@ namespace Battlehub.UIControls
             {
                 if (RectTransformUtility.ScreenPointToLocalPointInRectangle(rt, position, camera, out localPoint))
                 {
-                    if (localPoint.y > -rt.rect.height / 4)
+                    if(m_canChangeDragItemParent && m_treeView.CanReparent)
                     {
-                        Action = ItemDropAction.SetPrevSibling;
-                        RectTransform.position = rt.position;
-                    }
-                    else if (localPoint.y < rt.rect.height / 4 - rt.rect.height && !tvItem.HasChildren)
-                    {
-                        Action = ItemDropAction.SetNextSibling;
-                        RectTransform.position = rt.TransformPoint(Vector3.down * rt.rect.height);
+                        if (localPoint.y > -rt.rect.height / 4)
+                        {
+                            if (tvItem.Parent != null && !tvItem.Parent.CanBeParent)
+                            {
+                                Action = ItemDropAction.None;
+                                return;
+                            }
+
+                            Action = ItemDropAction.SetPrevSibling;
+                            RectTransform.position = rt.position;
+                        }
+                        else if (localPoint.y < rt.rect.height / 4 - rt.rect.height && !tvItem.HasChildren)
+                        {
+                            if (tvItem.Parent != null && !tvItem.Parent.CanBeParent)
+                            {
+                                Action = ItemDropAction.None;
+                                return;
+                            }
+
+                            Action = ItemDropAction.SetNextSibling;
+                            RectTransform.position = rt.TransformPoint(Vector3.down * rt.rect.height);
+                        }
+                        else
+                        {
+                            if (!tvItem.CanBeParent)
+                            {
+                                Action = ItemDropAction.None;
+                                return;
+                            }
+
+                            Action = ItemDropAction.SetLastChild;
+                            RectTransform.position = rt.position;
+                        }
                     }
                     else
                     {
-                        if (!tvItem.CanBeParent)
+                        if (localPoint.y > -rt.rect.height / 4)
                         {
-                            return;
-                        }
+                            if (tvItem.Parent != null && !tvItem.Parent.CanBeParent)
+                            {
+                                Action = ItemDropAction.None;
+                                return;
+                            }
 
-                        Action = ItemDropAction.SetLastChild;
-                        RectTransform.position = rt.position;
+
+                            Action = ItemDropAction.SetPrevSibling;
+                            RectTransform.position = rt.position;
+                        }
+                        else if (localPoint.y < rt.rect.height / 2 && !tvItem.HasChildren)
+                        {
+                            if (tvItem.Parent != null && !tvItem.Parent.CanBeParent)
+                            {
+                                Action = ItemDropAction.None;
+                                return;
+                            }
+
+                            Action = ItemDropAction.SetNextSibling;
+                            RectTransform.position = rt.TransformPoint(Vector3.down * rt.rect.height);
+                        }
                     }
+                  
                 }
             }
         }

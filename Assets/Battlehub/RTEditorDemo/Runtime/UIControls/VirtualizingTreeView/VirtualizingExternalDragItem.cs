@@ -16,7 +16,7 @@ namespace Battlehub.UIControls
 
         void IDragHandler.OnDrag(PointerEventData eventData)
         {
-            TreeView.ExternalItemDrag(eventData.position);
+            TreeView.ExternalDrag(eventData.position);
         }
 
         void IDropHandler.OnDrop(PointerEventData eventData)
@@ -26,7 +26,7 @@ namespace Battlehub.UIControls
                 TreeView.AddChild(TreeView.DropTarget, new GameObject());
             }
 
-            TreeView.ExternalItemDrop();           
+            TreeView.ExternalDrop();           
         }
 
         void IEndDragHandler.OnEndDrag(PointerEventData eventData)
@@ -73,7 +73,7 @@ namespace Battlehub.UIControls
                
             }
 
-            TreeView.ExternalItemDrop();
+            TreeView.ExternalDrop();
         }
 
        

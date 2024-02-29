@@ -943,7 +943,7 @@ MonoBehaviour:
   m_Vertical: 1
   m_MovementType: 2
   m_Elasticity: 0.1
-  m_Inertia: 1
+  m_Inertia: 0
   m_DecelerationRate: 0.135
   m_ScrollSensitivity: 30
   m_Viewport: {fileID: 224912998232456308}
@@ -1016,8 +1016,9 @@ MonoBehaviour:
   ExpandChildrenWidth: 1
   ExpandChildrenHeight: 0
   Camera: {fileID: 0}
-  ScrollSpeed: 100
+  ScrollSpeed: 30
   ScrollMargin: {x: 3.4028235e+38, y: 3.4028235e+38, z: 3.4028235e+38, w: 3.4028235e+38}
+  ScrollPadding: {x: 15, y: 15, z: 15, w: 15}
   Indent: 20
   CanReparent: 1
   AutoExpand: 0

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 namespace Battlehub.UIControls
 {
     [RequireComponent(typeof(RectTransform))]
@@ -28,11 +29,18 @@ namespace Battlehub.UIControls
         {
             get { return m_rectTransform; }
         }
-        private VirtualizingItemContainer m_item;
-        protected VirtualizingItemContainer Item
+        private VirtualizingItemContainer m_target;
+        public VirtualizingItemContainer Target
         {
-            get { return m_item; }
+            get { return m_target; }
         }
+
+        private ItemContainerData[] m_dragItems;
+        protected ItemContainerData[] DragItems
+        {
+            get { return m_dragItems; }
+        }
+
         private void Awake()
         {
             m_rectTransform = GetComponent<RectTransform>();
@@ -51,16 +59,21 @@ namespace Battlehub.UIControls
         {
             gameObject.SetActive(item != null);
             
-            m_item = item;
-            if(m_item == null)
+            m_target = item;
+            if(m_target == null)
             {
                 Action = ItemDropAction.None;
             }
         }
 
+        public virtual void SetDragItems(ItemContainerData[] dragItems)
+        {
+            m_dragItems = dragItems;
+        }
+
         public virtual void SetPosition(Vector2 position)
         {
-            if(m_item == null)
+            if (m_target == null)
             {
                 return;
             }
@@ -70,7 +83,7 @@ namespace Battlehub.UIControls
                 return;
             }
 
-            RectTransform rt = Item.RectTransform;
+            RectTransform rt = Target.RectTransform;
             Vector2 sizeDelta = m_rectTransform.sizeDelta;
             sizeDelta.y = rt.rect.height;
             m_rectTransform.sizeDelta = sizeDelta;
@@ -93,13 +106,22 @@ namespace Battlehub.UIControls
                 else 
                 {
                     Action = ItemDropAction.SetNextSibling;
-
                     RectTransform.position = rt.position;
                     RectTransform.localPosition = RectTransform.localPosition - new Vector3(0, rt.rect.height * ParentCanvas.scaleFactor, 0);
                 }
             }
         }
-       
+
+        #region Obsolete
+
+        [Obsolete] //12.02.2021
+        protected VirtualizingItemContainer Item
+        {
+            get { return m_target; }
+        }
+
+        #endregion
+
     }
 }
 

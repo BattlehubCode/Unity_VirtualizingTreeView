@@ -10,7 +10,7 @@ namespace Battlehub.UIControls
 
         public void ApplyImageColor(Color color)
         {
-            Image image = GetComponent<Image>();
+            Graphic image = GetComponent<Graphic>();
             if(image != null)
             {
                 image.color = color;

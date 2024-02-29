@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -15,6 +16,12 @@ namespace Battlehub.UIControls
         Vertical, //NOTE: Only vertical mode was tested
     }
 
+    public enum ScrollMode
+    {
+        Discrete,
+        Continuous
+    }
+
     public delegate void DataBindAction(RectTransform container, object item);
 
     /// <summary>
@@ -27,6 +34,11 @@ namespace Battlehub.UIControls
         /// raised if data item should be bound to ui container
         /// </summary>
         public event DataBindAction ItemDataBinding;
+
+        /// <summary>
+        /// Raised whenever items list changed
+        /// </summary>
+        public event EventHandler ItemsChanged;
 
         /// <summary>
         /// ui container prefab (represents visible data item)
@@ -45,6 +57,14 @@ namespace Battlehub.UIControls
         /// Listen for virtualContent dimensions change
         /// </summary>
         private RectTransformChangeListener m_virtualContentTransformChangeListener;
+
+        //[SerializeField]
+        private ScrollMode m_scrollMode = ScrollMode.Discrete;
+        public ScrollMode ScrollMode
+        {
+            get { return m_scrollMode; }
+            set { m_scrollMode = value; }
+        }
 
         /// <summary>
         /// virtualizing mode (horizontal or vertical(default))
@@ -66,7 +86,7 @@ namespace Battlehub.UIControls
         {
             get
             {
-                if(m_useGrid)
+                if (m_useGrid)
                 {
                     return m_gridLayoutGroup.constraintCount;
                 }
@@ -74,15 +94,18 @@ namespace Battlehub.UIControls
             }
             set
             {
-                if(m_useGrid)
+                if (m_useGrid)
                 {
                     m_gridLayoutGroup.constraintCount = value;
-                    scrollSensitivity = ContainerSize;// * ContainersPerGroup;
+                    if (m_scrollMode == ScrollMode.Discrete)
+                    {
+                        scrollSensitivity = ContainerSize;
+                    }
                     UpdateContentSize();
                 }
             }
         }
-        
+
 
         /// <summary>
         /// linked list of ui containers
@@ -97,12 +120,15 @@ namespace Battlehub.UIControls
         {
             get { return m_items; }
             set
-            { 
+            {
                 if (m_items != value)
                 {
                     m_items = value;
-                    DataBind(RoundedIndex);
-                    UpdateContentSize();
+                    if (m_initialized)
+                    {
+                        DataBind(RoundedIndex);
+                        UpdateContentSize();
+                    }
                 }
             }
         }
@@ -114,7 +140,7 @@ namespace Battlehub.UIControls
         {
             get
             {
-                if(Items == null)
+                if (Items == null)
                 {
                     return 0;
                 }
@@ -127,7 +153,7 @@ namespace Battlehub.UIControls
             get
             {
                 return Mathf.CeilToInt(((float)ItemsCount) / ContainersPerGroup) * ContainersPerGroup;
-                //return Mathf.RoundToInt(((float)ItemsCount) / ContainersPerGroup) * ContainersPerGroup;
+                //return Mathf.RoundToInt(((float)ItemsCount) / ContainersPerGroup) * ContainersPerGroup; 
             }
         }
 
@@ -168,7 +194,7 @@ namespace Battlehub.UIControls
                     return 0;
                 }
 
-                int index = Mathf.RoundToInt(NormalizedIndex * Mathf.Max((RoundedItemsCount - VisibleItemsCount), 0));
+                int index = Mathf.RoundToInt(NormalizedIndex * Mathf.Max(RoundedItemsCount - VisibleItemsCount, 0));
                 index = index % ContainersPerGroup;
                 return index;
             }
@@ -185,23 +211,30 @@ namespace Battlehub.UIControls
                 {
                     return 0;
                 }
+                int index;
 
-                float magicScrollFix = (0.5f / RoundedItemsCount);
-
-                int index = Mathf.RoundToInt((NormalizedIndex + magicScrollFix) * Mathf.Max((RoundedItemsCount - VisibleItemsCount), 0));
+                if (m_scrollMode == ScrollMode.Discrete)
+                {
+                    float magicScrollFix = 0.5f / RoundedItemsCount;
+                    index = Mathf.RoundToInt((NormalizedIndex + magicScrollFix) * Mathf.Max(RoundedItemsCount - VisibleItemsCount, 0));
+                }
+                else
+                {
+                    float visibleItemsCount = Mathf.Min(ItemsCount, Size / ContainerSize * ContainersPerGroup);
+                    index = Mathf.FloorToInt(NormalizedIndex * Mathf.Max(RoundedItemsCount - visibleItemsCount, 0));
+                }
 
                 index = index / ContainersPerGroup * ContainersPerGroup;
-
                 return index;
             }
-            set
+            private set
             {
                 if (value < 0 || value >= RoundedItemsCount)
                 {
                     return;
                 }
                 NormalizedIndex = EvalNormalizedIndex(value);
-                if(m_mode == VirtualizingMode.Vertical)
+                if (m_mode == VirtualizingMode.Vertical)
                 {
                     verticalNormalizedPosition = 1 - NormalizedIndex;
                 }
@@ -212,8 +245,6 @@ namespace Battlehub.UIControls
             }
         }
 
-       
-
         /// <summary>
         /// This method will convert index to normalized index
         /// </summary>
@@ -221,7 +252,9 @@ namespace Battlehub.UIControls
         /// <returns></returns>
         private float EvalNormalizedIndex(int index)
         {
-            int delta = RoundedItemsCount - VisibleItemsCount;
+            int visibleItemsCount = Mathf.Min(ItemsCount, Mathf.RoundToInt(Size / ContainerSize) * ContainersPerGroup);
+            int roundItemsCount = RoundedItemsCount;
+            int delta = roundItemsCount - visibleItemsCount;
             if (delta <= 0)
             {
                 return 0;
@@ -236,10 +269,7 @@ namespace Battlehub.UIControls
         /// </summary>
         public int VisibleItemsCount
         {
-            get
-            {
-                return Mathf.Min(ItemsCount, PossibleItemsCount);
-            }
+            get { return Mathf.Min(ItemsCount, PossibleItemsCount); }
         }
 
         /// <summary>
@@ -253,8 +283,8 @@ namespace Battlehub.UIControls
                 {
                     return 0;
                 }
-                //return Mathf.FloorToInt(Size / ContainerSize) * ContainersPerGroup;
-                return Mathf.RoundToInt(Size / ContainerSize) * ContainersPerGroup;
+
+                return (Mathf.RoundToInt(Size / ContainerSize) + (m_scrollMode == ScrollMode.Discrete ? 0 : 2)) * ContainersPerGroup;
             }
         }
 
@@ -269,7 +299,7 @@ namespace Battlehub.UIControls
                 {
                     return Mathf.Max(0, ContainerPrefab.rect.width + (m_useGrid ? m_gridSpacing.x : m_layoutGroup.spacing));
                 }
-                else if(m_mode == VirtualizingMode.Vertical)
+                else if (m_mode == VirtualizingMode.Vertical)
                 {
                     return Mathf.Max(0, ContainerPrefab.rect.height + (m_useGrid ? m_gridSpacing.y : m_layoutGroup.spacing));
                 }
@@ -287,28 +317,36 @@ namespace Battlehub.UIControls
             {
                 if (m_mode == VirtualizingMode.Horizontal)
                 {
-                    return Mathf.Max(0, m_virtualContent.rect.width);
+                    //return Mathf.Max(0, m_virtualContent.rect.width);
+                    return Mathf.Max(0, viewport.rect.width);
                 }
-                return Mathf.Max(0, m_virtualContent.rect.height);
+                //return Mathf.Max(0, m_virtualContent.rect.height);
+                return Mathf.Max(0, viewport.rect.height);
             }
         }
 
 
+        private bool m_initialized;
         protected override void Awake()
         {
             base.Awake();
 
-            if(m_virtualContent == null)
+            if (m_virtualContent == null)
             {
+                Debug.LogWarning("m_virtualContent == null");
                 return;
             }
 
             m_virtualContentTransformChangeListener = m_virtualContent.GetComponent<RectTransformChangeListener>();
-            m_virtualContentTransformChangeListener.RectTransformChanged += OnVirtualContentTransformChaged;
+            if (m_virtualContentTransformChangeListener == null)
+            {
+                m_virtualContentTransformChangeListener = m_virtualContent.gameObject.AddComponent<RectTransformChangeListener>();
+            }
 
+            m_virtualContentTransformChangeListener.RectTransformChanged += OnVirtualContentTransformChanged;
             UpdateVirtualContentPosition();
 
-            if(m_useGrid)
+            if (m_useGrid)
             {
                 LayoutGroup layoutGroup = m_virtualContent.GetComponent<LayoutGroup>();
                 if (layoutGroup != null && !(layoutGroup is GridLayoutGroup))
@@ -319,7 +357,7 @@ namespace Battlehub.UIControls
                 GridLayoutGroup gridLayout = m_virtualContent.GetComponent<GridLayoutGroup>();
                 if (gridLayout == null)
                 {
-                    gridLayout = m_virtualContent.gameObject.AddComponent<GridLayoutGroup>();                   
+                    gridLayout = m_virtualContent.gameObject.AddComponent<GridLayoutGroup>();
                 }
 
                 gridLayout.cellSize = ContainerPrefab.rect.size;
@@ -350,7 +388,7 @@ namespace Battlehub.UIControls
                         DestroyImmediate(layoutGroup);
                     }
 
-                    // Create HorizontalLayoutGroup if does not exists
+                    // Create HorizontalLayoutGroup if not exist
 
                     HorizontalLayoutGroup horizontalLayout = m_virtualContent.GetComponent<HorizontalLayoutGroup>();
                     if (horizontalLayout == null)
@@ -376,7 +414,7 @@ namespace Battlehub.UIControls
                         DestroyImmediate(layoutGroup);
                     }
 
-                    // Create VerticalLayoutGroup if does not exists
+                    // Create VerticalLayoutGroup if not exist
 
                     VerticalLayoutGroup verticalLayout = m_virtualContent.GetComponent<VerticalLayoutGroup>();
                     if (verticalLayout == null)
@@ -393,23 +431,33 @@ namespace Battlehub.UIControls
                     m_layoutGroup = verticalLayout;
                 }
             }
-
-            // Set ScrollSensitivity to be exactly the same as ContainerSize
-
-            scrollSensitivity = ContainerSize;// * ContainersPerGroup;
         }
 
+        protected override void Start()
+        {
+            base.Start();
+            m_initialized = true;
+
+            DataBind(RoundedIndex);
+            UpdateContentSize();
+
+            if (m_scrollMode == ScrollMode.Discrete)
+            {
+                // Set ScrollSensitivity to be exactly the same as ContainerSize
+                scrollSensitivity = ContainerSize;// * ContainersPerGroup;
+            }
+        }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            if(m_virtualContentTransformChangeListener != null)
+            if (m_virtualContentTransformChangeListener != null)
             {
-                m_virtualContentTransformChangeListener.RectTransformChanged -= OnVirtualContentTransformChaged;
+                m_virtualContentTransformChangeListener.RectTransformChanged -= OnVirtualContentTransformChanged;
             }
         }
 
-        private void OnVirtualContentTransformChaged()
+        private void OnVirtualContentTransformChanged()
         {
             if (m_containers.Count == 0)
             {
@@ -429,7 +477,7 @@ namespace Battlehub.UIControls
 
                     RectTransform parent = (RectTransform)m_virtualContent.parent;
 
-                    if(verticalScrollbarVisibility == ScrollbarVisibility.Permanent)
+                    if (verticalScrollbarVisibility == ScrollbarVisibility.Permanent)
                     {
                         ContainersPerGroup = Mathf.FloorToInt(parent.rect.height / Mathf.Max(0.00001f, m_gridLayoutGroup.cellSize.y + m_gridSpacing.y));
                     }
@@ -437,22 +485,22 @@ namespace Battlehub.UIControls
                     {
                         ContainersPerGroup = Mathf.RoundToInt(parent.rect.height / Mathf.Max(0.00001f, m_gridLayoutGroup.cellSize.y + m_gridSpacing.y));
                     }
-                    
+
                 }
             }
-            else if(m_mode == VirtualizingMode.Vertical)
+            else if (m_mode == VirtualizingMode.Vertical)
             {
                 content.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, m_virtualContent.rect.width);
                 if (m_useGrid)
                 {
-                    if((m_gridLayoutGroup.cellSize.x + m_gridSpacing.x) < 0.00001f)
+                    if ((m_gridLayoutGroup.cellSize.x + m_gridSpacing.x) < 0.00001f)
                     {
                         Debug.LogError("cellSize is too small");
                     }
 
                     RectTransform parent = (RectTransform)m_virtualContent.parent;
 
-                    if(horizontalScrollbarVisibility == ScrollbarVisibility.Permanent)
+                    if (horizontalScrollbarVisibility == ScrollbarVisibility.Permanent)
                     {
                         //ContainersPerGroup = Mathf.FloorToInt(parent.rect.width / Mathf.Max(0.00001f, m_gridLayoutGroup.cellSize.x + m_gridSpacing.x));
                         ContainersPerGroup = Mathf.RoundToInt(parent.rect.width / Mathf.Max(0.00001f, m_gridLayoutGroup.cellSize.x + m_gridSpacing.x));
@@ -468,17 +516,20 @@ namespace Battlehub.UIControls
         protected override void SetNormalizedPosition(float value, int axis)
         {
             base.SetNormalizedPosition(value, axis);
-            UpdateVirtualContentPosition();
-            if(m_mode == VirtualizingMode.Vertical && axis == 1)
+
+            if (m_mode == VirtualizingMode.Vertical && axis == 1)
             {
                 //ScrollView creates top to bottom vertical scrollbar by default, so value inverted here
                 NormalizedIndex = 1 - value;
             }
-            else if(m_mode == VirtualizingMode.Horizontal && axis == 0)
+            else if (m_mode == VirtualizingMode.Horizontal && axis == 0)
             {
                 NormalizedIndex = value;
             }
+
+            UpdateVirtualContentPosition();
         }
+
         protected override void SetContentAnchoredPosition(Vector2 position)
         {
             base.SetContentAnchoredPosition(position);
@@ -492,28 +543,46 @@ namespace Battlehub.UIControls
             {
                 NormalizedIndex = horizontalNormalizedPosition;
             }
-        }        
+        }
 
         protected override void OnRectTransformDimensionsChange()
         {
             base.OnRectTransformDimensionsChange();
 
             //Databind if there should be more(or less) visible items than instantiated ui containers
-            if(isActiveAndEnabled)
+            if (isActiveAndEnabled)
             {
+                //03.08.2021 commented out (added below)
+                //if(m_scrollMode == ScrollMode.Continuous)
+                //{
+                //    {
+                //        DataBind(RoundedIndex);
+                //    }
+                //}
                 StartCoroutine(CoRectTransformDimensionsChange());
             }
         }
 
+        //private static readonly WaitForEndOfFrame m_waitForEndOfFrame = ;
         IEnumerator CoRectTransformDimensionsChange()
         {
             yield return new WaitForEndOfFrame();
-            if (VisibleItemsCount != m_containers.Count)
+
+            if (m_scrollMode == ScrollMode.Discrete)
+            {
+                if (VisibleItemsCount != m_containers.Count)
+                {
+                    DataBind(RoundedIndex);
+                }
+            }
+
+            //Added 03.08.2021
+            else if (m_scrollMode == ScrollMode.Continuous)
             {
                 DataBind(RoundedIndex);
             }
 
-            OnVirtualContentTransformChaged();
+            OnVirtualContentTransformChanged();
         }
 
         /// <summary>
@@ -523,13 +592,27 @@ namespace Battlehub.UIControls
         {
             if (m_virtualContent != null)
             {
-                if(m_mode == VirtualizingMode.Horizontal)
+                if (m_mode == VirtualizingMode.Horizontal)
                 {
                     m_virtualContent.anchoredPosition = new Vector2(0, content.anchoredPosition.y);
                 }
-                else if(m_mode == VirtualizingMode.Vertical)
+                else if (m_mode == VirtualizingMode.Vertical)
                 {
-                    m_virtualContent.anchoredPosition = new Vector2(content.anchoredPosition.x, 0);
+                    if (m_scrollMode == ScrollMode.Continuous && m_initialized)
+                    {
+                        Vector2 offsetMin = m_virtualContent.offsetMin;
+
+                        float visibleItemsCount = Mathf.Min(RoundedItemsCount, Size / ContainerSize * ContainersPerGroup);
+                        float offset = (NormalizedIndex * Mathf.Max(RoundedItemsCount - visibleItemsCount, 0) - RoundedIndex) / ContainersPerGroup;
+                        //float offset = NormalizedIndex * Mathf.Max(RoundedItemsCount - visibleItemsCount, 0) - RoundedIndex;
+
+                        m_virtualContent.offsetMax = new Vector2(m_virtualContent.offsetMax.x, ContainerSize * offset);
+                        m_virtualContent.offsetMin = offsetMin;
+                    }
+                    else
+                    {
+                        m_virtualContent.anchoredPosition = new Vector2(content.anchoredPosition.x, 0);
+                    }
                 }
             }
         }
@@ -552,14 +635,14 @@ namespace Battlehub.UIControls
 
 
         /// <summary>
-        /// handles normailzed index change
+        /// handles normalized index change
         /// </summary>
         /// <param name="newValue"></param>
         private void OnNormalizedIndexChanged(float newValue)
         {
             //clamp newValue to be in [0,1]
             newValue = Mathf.Clamp01(newValue);
-            
+
             //store index
             int prevFirstItemIndex = RoundedIndex;
 
@@ -568,6 +651,7 @@ namespace Battlehub.UIControls
 
             //update normalized index
             m_normalizedIndex = newValue;
+
 
             //get updated index
             int firstItemIndex = RoundedIndex;
@@ -617,9 +701,9 @@ namespace Battlehub.UIControls
                             if (ItemDataBinding != null && Items != null)
                             {
                                 int index = prevFirstItemIndex + VisibleItemsCount;
-                                if(index < ItemsCount)
+                                if (index < ItemsCount)
                                 {
-                                    object item = Items[prevFirstItemIndex + VisibleItemsCount];
+                                    object item = Items[index];
                                     ItemDataBinding(recycledContainer, item);
                                 }
                                 else
@@ -699,22 +783,28 @@ namespace Battlehub.UIControls
                 foreach (RectTransform container in m_containers.ToArray())
                 {
                     int index = firstItemIndex + i;
-                    if(index < Items.Count)
+                    if (index < Items.Count)
                     {
                         ItemDataBinding(container, Items[firstItemIndex + i]);
+
+                        if (!container.gameObject.activeSelf)
+                        {
+                            container.gameObject.SetActive(true);
+                        }
                     }
                     else
                     {
                         ItemDataBinding(container, null);
                     }
+
                     i++;
                 }
             }
         }
-       
+
         public bool IsParentOf(Transform child)
         {
-            if(m_virtualContent == null)
+            if (m_virtualContent == null)
             {
                 return false;
             }
@@ -734,7 +824,7 @@ namespace Battlehub.UIControls
 
             if (PossibleItemsCount >= m_items.Count)
             {
-                if(m_containers.Count < VisibleItemsCount)
+                if (m_containers.Count < VisibleItemsCount)
                 {
                     RectTransform container = Instantiate(ContainerPrefab, m_virtualContent);
                     m_containers.AddLast(container);
@@ -756,8 +846,15 @@ namespace Battlehub.UIControls
                 {
                     RectTransform prevContainer = m_containers.ElementAtOrDefault(index - firstIndex - 1);
                     LinkedListNode<RectTransform> prevNode = m_containers.Find(prevContainer);
-                    m_containers.AddAfter(prevNode, container);
-                    container.SetSiblingIndex(index - firstIndex);
+                    if (prevNode == null)
+                    {
+                        m_containers.AddLast(container);
+                    }
+                    else
+                    {
+                        m_containers.AddAfter(prevNode, container);
+                        container.SetSiblingIndex(index - firstIndex);
+                    }
                 }
 
                 if (raiseItemDataBindingEvent)
@@ -767,14 +864,21 @@ namespace Battlehub.UIControls
                         ItemDataBinding(container, item);
                     }
                 }
+
+                if (!container.gameObject.activeSelf)
+                {
+                    container.gameObject.SetActive(true);
+                }
             }
             else
             {
-                if(index < firstIndex)
+                if (index < firstIndex)
                 {
                     UpdateScrollbar(firstIndex + 1);
                 }
             }
+
+            ItemsChanged?.Invoke(this, EventArgs.Empty);
         }
 
         public void RemoveItems(int[] indices, bool raiseItemDataBindingEvent = true)
@@ -782,7 +886,7 @@ namespace Battlehub.UIControls
             int index = RoundedIndex;
 
             indices = indices.OrderBy(i => i).ToArray();
-            for(int i = indices.Length - 1; i >= 0; --i)
+            for (int i = indices.Length - 1; i >= 0; --i)
             {
                 int removeAtIndex = indices[i];
                 if (removeAtIndex < 0 || removeAtIndex >= m_items.Count)
@@ -792,26 +896,42 @@ namespace Battlehub.UIControls
 
                 m_items.RemoveAt(removeAtIndex);
 
-                if(removeAtIndex < index)
+                if (removeAtIndex < index)
                 {
                     index--;
                 }
             }
 
-            if(index + VisibleItemsCount >= RoundedItemsCount)
+
+            if (m_scrollMode == ScrollMode.Continuous)
             {
-                index = Mathf.Max(0, RoundedItemsCount - VisibleItemsCount);
+                int visibleItemsCount = Mathf.Min(ItemsCount, Mathf.CeilToInt(Size / ContainerSize) * ContainersPerGroup);
+                int itemsCount = RoundedItemsCount;
+                if (index + visibleItemsCount >= itemsCount)
+                {
+                    int diff = index + visibleItemsCount - itemsCount;
+                    index = Mathf.Max(0, itemsCount - (visibleItemsCount + diff));
+                }
+            }
+            else
+            {
+                if (index + VisibleItemsCount >= RoundedItemsCount)
+                {
+                    index = Mathf.Max(0, RoundedItemsCount - VisibleItemsCount);
+                }
             }
 
             UpdateContentSize();
             UpdateScrollbar(index);
             DataBind(index);
-            OnVirtualContentTransformChaged();
+            OnVirtualContentTransformChanged();
+
+            ItemsChanged?.Invoke(this, EventArgs.Empty);
         }
 
         public void SetNextSibling(object sibling, object nextSibling)
-        { 
-            if(sibling == nextSibling)
+        {
+            if (sibling == nextSibling)
             {
                 return;
             }
@@ -841,9 +961,9 @@ namespace Battlehub.UIControls
             m_items.RemoveAt(nextSiblingIndex);
             m_items.Insert(insertIndex, nextSibling);
 
-            if(isInsertIndexInView)
+            if (isInsertIndexInView)
             {
-                if(isNextSiblingInView)
+                if (isNextSiblingInView)
                 {
                     RectTransform nextContainer = m_containers.ElementAt(nextSiblingContainerIndex);
                     m_containers.Remove(nextContainer);
@@ -886,11 +1006,13 @@ namespace Battlehub.UIControls
                         m_containers.AddAfter(prevNode, lastContainer);
                     }
 
- 
-                    if(nextSiblingContainerIndex < 0)
-                    {
-                        UpdateScrollbar(firstIndex - 1);
 
+                    if (nextSiblingContainerIndex < 0)
+                    {
+                        if (m_scrollMode == ScrollMode.Discrete)
+                        {
+                            UpdateScrollbar(firstIndex - 1);
+                        }
                         lastContainer.SetSiblingIndex(insertContainerIndex + 1);
                     }
                     else
@@ -939,19 +1061,22 @@ namespace Battlehub.UIControls
                 {
                     if (nextSiblingContainerIndex < 0)
                     {
-                        UpdateScrollbar(firstIndex - 1);
+                        if (m_scrollMode == ScrollMode.Discrete)
+                        {
+                            UpdateScrollbar(firstIndex - 1);
+                        }
                     }
-                  
-                    
                 }
             }
+
+            ItemsChanged?.Invoke(this, EventArgs.Empty);
         }
 
         public void SetPrevSibling(object sibling, object prevSibling)
         {
             int index = m_items.IndexOf(sibling);
             index--;
-            if(index >= 0)
+            if (index >= 0)
             {
                 sibling = m_items[index];
                 SetNextSibling(sibling, prevSibling);
@@ -964,7 +1089,7 @@ namespace Battlehub.UIControls
                 m_items.RemoveAt(prevSiblingIndex);
                 m_items.Insert(0, prevSibling);
 
-                if(lastContainer == null)
+                if (lastContainer == null)
                 {
                     lastContainer = m_containers.Last.Value;
                     m_containers.RemoveLast();
@@ -978,36 +1103,38 @@ namespace Battlehub.UIControls
 
                 lastContainer.SetSiblingIndex(0);
 
-                if(ItemDataBinding != null)
+                if (ItemDataBinding != null)
                 {
                     ItemDataBinding(lastContainer, prevSibling);
                 }
+
+                ItemsChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 
         public RectTransform GetContainer(object obj)
         {
-            if(m_items == null)
+            if (m_items == null)
             {
                 return null;
-            }            
-            
+            }
+
             int index = m_items.IndexOf(obj);
-            if(index < 0)
+            if (index < 0)
             {
                 return null;
             }
 
             int firstIndex = RoundedIndex;
             int lastIndex = firstIndex + VisibleItemsCount - 1;
-            if(firstIndex <= index && index <= lastIndex)
+            if (firstIndex <= index && index <= lastIndex)
             {
                 int elementIndex = index - firstIndex;
-                if(elementIndex < 0 || elementIndex >= m_containers.Count)
+                if (elementIndex < 0 || elementIndex >= m_containers.Count)
                 {
                     return null;
                 }
-                return m_containers.ElementAtOrDefault(index - firstIndex);
+                return m_containers.ElementAtOrDefault(elementIndex);
             }
 
             return null;
@@ -1015,7 +1142,7 @@ namespace Battlehub.UIControls
 
         public RectTransform FirstContainer()
         {
-            if(m_containers.Count == 0)
+            if (m_containers.Count == 0)
             {
                 return null;
             }
@@ -1023,14 +1150,14 @@ namespace Battlehub.UIControls
             return m_containers.First.Value;
         }
 
-        public void ForEachContainer(System.Action<RectTransform> action)
+        public void ForEachContainer(Action<RectTransform> action)
         {
-            if(action == null)
+            if (action == null)
             {
                 return;
             }
 
-            foreach(RectTransform container in m_containers)
+            foreach (RectTransform container in m_containers)
             {
                 action(container);
             }
@@ -1038,7 +1165,7 @@ namespace Battlehub.UIControls
 
         public RectTransform LastContainer()
         {
-            if(m_containers.Count == 0)
+            if (m_containers.Count == 0)
             {
                 return null;
             }
@@ -1047,7 +1174,11 @@ namespace Battlehub.UIControls
         }
         private void UpdateScrollbar(int index)
         {
-            m_normalizedIndex = EvalNormalizedIndex(index);
+            float normalizedIndex = EvalNormalizedIndex(index);
+            m_normalizedIndex = normalizedIndex;
+
+            m_normalizedIndex = Mathf.Clamp(m_normalizedIndex, 0, 1);
+
             if (m_mode == VirtualizingMode.Vertical)
             {
                 verticalNormalizedPosition = 1 - m_normalizedIndex;
@@ -1056,7 +1187,42 @@ namespace Battlehub.UIControls
             {
                 horizontalNormalizedPosition = m_normalizedIndex;
             }
-        }  
+        }
+
+        public bool IsInViewport(object obj)
+        {
+            if (ScrollMode == ScrollMode.Discrete)
+            {
+                return GetContainer(obj) != null;
+            }
+
+            if (m_items == null)
+            {
+                return false;
+            }
+
+            int index = m_items.IndexOf(obj);
+            if (index < 0)
+            {
+                return false;
+            }
+
+            int visibleItemsCount = Mathf.Min(ItemsCount, Mathf.RoundToInt(Size / ContainerSize) * ContainersPerGroup);
+            int firstIndex = RoundedIndex;
+            int lastIndex = firstIndex + visibleItemsCount - 1;
+            if (firstIndex <= index && index <= lastIndex)
+            {
+                int elementIndex = index - firstIndex;
+                if (elementIndex < 0 || elementIndex >= m_containers.Count)
+                {
+                    return false;
+                }
+                return m_containers.ElementAtOrDefault(elementIndex) != null;
+            }
+
+            return false;
+        }
+
     }
 }
 

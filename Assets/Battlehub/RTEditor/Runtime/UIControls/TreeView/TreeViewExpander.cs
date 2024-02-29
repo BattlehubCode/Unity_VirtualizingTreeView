@@ -21,12 +21,17 @@ namespace Battlehub.UIControls
             }
         }
 
+        private bool m_isOn;
         public bool IsOn
         {
-            get { return m_toggle.isOn; }
-            set
+            get { return m_isOn; }
+            set 
             {
-                m_toggle.isOn = value;
+                m_isOn = value; 
+                if(m_toggle != null)
+                {
+                    m_toggle.isOn = m_isOn;
+                }
             }
         }
 
@@ -54,13 +59,17 @@ namespace Battlehub.UIControls
             if (CanExpand)
             {
                 m_toggle.interactable = true;
+                m_toggle.isOn = m_isOn;
                 //m_toggle.enabled = true;
 
                 if (IsOn)
                 {
                     if (OffGraphic != null)
                     {
-                        OffGraphic.enabled = false;
+                        if (!CanvasUpdateRegistry.IsRebuildingGraphics())
+                        {
+                            OffGraphic.enabled = false;
+                        }
                     }
                 }
                 else
@@ -80,7 +89,10 @@ namespace Battlehub.UIControls
                 }
                 if (OffGraphic != null)
                 {
-                    OffGraphic.enabled = false;
+                    if (!CanvasUpdateRegistry.IsRebuildingGraphics())
+                    {
+                        OffGraphic.enabled = false;
+                    }
                 }
             }
         }
