@@ -176,6 +176,12 @@ namespace Battlehub.UIControls
             set;
         }
 
+        public bool CanBeSibling
+        {
+            get;
+            set;
+        }
+
         /// <summary>
         /// Is treeviewitem is descendant of another element
         /// </summary>
@@ -784,6 +790,7 @@ namespace Battlehub.UIControls
                 treeViewItem.CanEdit = CanEdit && args.CanEdit;
                 treeViewItem.CanDrag = CanDrag && args.CanDrag;
                 treeViewItem.CanBeParent = args.CanBeParent;
+                treeViewItem.CanBeSibling = args.CanBeSibling;
                 treeViewItem.CanChangeParent = args.CanChangeParent;
                 treeViewItem.CanSelect = args.CanSelect;
                 treeViewItem.UpdateIndent();
@@ -791,6 +798,7 @@ namespace Battlehub.UIControls
                 TreeViewItemContainerData containerData = (TreeViewItemContainerData)GetItemContainerData(item);
                 containerData.CanChangeParent = args.CanChangeParent;
                 containerData.CanBeParent = args.CanBeParent;
+                containerData.CanBeSibling = args.CanBeSibling;
             }
             else
             {
@@ -799,6 +807,7 @@ namespace Battlehub.UIControls
                 treeViewItem.CanEdit = false;
                 treeViewItem.CanDrag = false;
                 treeViewItem.CanBeParent = false;
+                treeViewItem.CanBeSibling = false;
                 treeViewItem.CanChangeParent = false;
                 treeViewItem.CanSelect = false;
                 treeViewItem.UpdateIndent();

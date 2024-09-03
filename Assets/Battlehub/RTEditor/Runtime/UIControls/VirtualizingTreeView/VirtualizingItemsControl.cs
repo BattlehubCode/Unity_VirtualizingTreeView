@@ -83,6 +83,7 @@ namespace Battlehub.UIControls
                 itemContainer.CanEdit = args.CanEdit;
                 itemContainer.CanDrag = args.CanDrag;
                 itemContainer.CanBeParent = args.CanBeParent;
+                itemContainer.CanBeSibling = args.CanBeSibling;
                 itemContainer.CanChangeParent = args.CanChangeParent;
                 itemContainer.CanSelect = args.CanSelect;
 
@@ -92,6 +93,7 @@ namespace Battlehub.UIControls
                 itemContainer.CanEdit = false;
                 itemContainer.CanDrag = false;
                 itemContainer.CanBeParent = false;
+                itemContainer.CanBeSibling = false;
                 itemContainer.CanChangeParent = false;
                 itemContainer.CanSelect = false;
             }
@@ -110,7 +112,10 @@ namespace Battlehub.UIControls
             }
             else
             {
-                itemContainer.ItemPresenter.SetActive(true);
+                if (itemContainer.ItemPresenter != null)
+                {
+                    itemContainer.ItemPresenter.SetActive(true);
+                }
             }
         }
 
@@ -842,7 +847,7 @@ namespace Battlehub.UIControls
             base.Start();
             if (m_eventSystem == null)
             {
-                m_eventSystem = FindObjectOfType<EventSystem>();
+                m_eventSystem = UnityObjectExt.FindAnyObjectByType<EventSystem>();
             }
 
             if (InputProvider == null)
@@ -877,6 +882,10 @@ namespace Battlehub.UIControls
                 if (verDelta > 0)
                 {
                     verOffset = (ScrollSpeed / 10.0f) * (1.0f / verDelta);
+                    if (m_dropMarker != null && verOffset != 0)
+                    {
+                        m_dropMarker.SetTarget(null);
+                    }
                 }
 
                 float horDelta = (m_scrollRect.content.rect.width - m_scrollRect.viewport.rect.width);
@@ -884,6 +893,10 @@ namespace Battlehub.UIControls
                 if (horDelta > 0)
                 {
                     horOffset = (ScrollSpeed / 10.0f) * (1.0f / horDelta);
+                    if (m_dropMarker != null && horOffset != 0)
+                    {
+                        m_dropMarker.SetTarget(null);
+                    }
                 }
 
                 if (m_scrollDir == ScrollDir.Up)
@@ -1426,9 +1439,10 @@ namespace Battlehub.UIControls
             
             if (m_dragItems != null || m_isExternalDragInProgress)
             {
-                if (m_scrollDir == ScrollDir.None)
+                // 04/04/2024 commented out. breaks the marker when dragging in/out the tree view and doesn't seem to fix anything
+                // if (m_scrollDir == ScrollDir.None)
                 {
-                    if(args == null || !args.Cancel)
+                    if (args == null || !args.Cancel)
                     {
                         m_dropMarker.SetTarget(m_dropTarget);
                     }
@@ -1503,7 +1517,6 @@ namespace Battlehub.UIControls
                     ItemClick(this, new ItemArgs(new[] { sender.Item }, eventData));
                 }
             }
-            
         }
 
         private protected virtual void OnItemBeginDrag(VirtualizingItemContainer sender, PointerEventData eventData)
@@ -1650,6 +1663,7 @@ namespace Battlehub.UIControls
                 StopCoroutine(m_coSetScrollDir);
                 m_coSetScrollDir = null;
             }
+            m_targetScrollDir = ScrollDir.None;
             m_scrollDir = ScrollDir.None;
         }
 
@@ -1657,10 +1671,12 @@ namespace Battlehub.UIControls
         private IEnumerator m_coSetScrollDir;
         private IEnumerator CoSetScrollDir()
         {
-            yield return new WaitForSeconds(0.2f);
+            yield return new WaitForSecondsRealtime(0.2f);
             if(m_dragItems != null || m_isExternalDragInProgress)
             {
                 m_scrollDir = m_targetScrollDir;
+
+                /*
                 if (m_scrollDir == ScrollDir.Up || m_scrollDir == ScrollDir.Down)
                 {
                     if (m_dropMarker != null)
@@ -1668,6 +1684,7 @@ namespace Battlehub.UIControls
                         m_dropMarker.SetTarget(null);
                     }
                 }
+                */
             }
             m_coSetScrollDir = null;
         }
@@ -1977,7 +1994,7 @@ namespace Battlehub.UIControls
 
         private IEnumerator CoHold(PointerEventData eventData)
         {
-            yield return new WaitForSeconds(0.5f);
+            yield return new WaitForSecondsRealtime(0.5f);
 
             m_isHoldInProgress = true;
 

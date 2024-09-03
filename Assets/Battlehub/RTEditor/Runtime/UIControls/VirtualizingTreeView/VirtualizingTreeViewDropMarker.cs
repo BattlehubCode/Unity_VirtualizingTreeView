@@ -152,12 +152,24 @@ namespace Battlehub.UIControls
                                 return;
                             }
 
+                            if (Target != null && !Target.CanBeSibling)
+                            {
+                                Action = ItemDropAction.None;
+                                return;
+                            }
+
                             Action = ItemDropAction.SetPrevSibling;
                             RectTransform.position = rt.position;
                         }
                         else if (localPoint.y < rt.rect.height / 4 - rt.rect.height && !tvItem.HasChildren)
                         {
                             if (tvItem.Parent != null && !tvItem.Parent.CanBeParent)
+                            {
+                                Action = ItemDropAction.None;
+                                return;
+                            }
+
+                            if (Target != null && !Target.CanBeSibling)
                             {
                                 Action = ItemDropAction.None;
                                 return;
@@ -188,6 +200,11 @@ namespace Battlehub.UIControls
                                 return;
                             }
 
+                            if (Target != null && !Target.CanBeSibling)
+                            {
+                                Action = ItemDropAction.None;
+                                return;
+                            }
 
                             Action = ItemDropAction.SetPrevSibling;
                             RectTransform.position = rt.position;
@@ -200,11 +217,16 @@ namespace Battlehub.UIControls
                                 return;
                             }
 
+                            if (Target != null && !Target.CanBeSibling)
+                            {
+                                Action = ItemDropAction.None;
+                                return;
+                            }
+
                             Action = ItemDropAction.SetNextSibling;
                             RectTransform.position = rt.TransformPoint(Vector3.down * rt.rect.height);
                         }
                     }
-                  
                 }
             }
         }

@@ -1,1 +1,1 @@
-Documentation: http://rteditor.battlehub.net/vtv/
+Documentation: https://rteditor.battlehub.net/manual/vtv.html
