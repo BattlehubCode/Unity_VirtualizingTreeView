@@ -31,14 +31,6 @@ namespace Battlehub.UIControls
             set { m_canBeParent = value; }
         }
 
-        [SerializeField]
-        private bool m_canBeSibling = true;
-        public virtual bool CanBeSibling
-        {
-            get { return m_canBeSibling; }
-            set { m_canBeSibling = value; }
-        }
-
         [HideInInspector, SerializeField, FormerlySerializedAs("CanChangeParent")]
         private bool m_canChangeParent = true;
         public virtual bool CanChangeParent
@@ -144,7 +136,7 @@ namespace Battlehub.UIControls
                             StopCoroutine(m_coResetWasEditing);
                         }
                         m_coResetWasEditing = CoResetWasEditing();
-                        if (gameObject.activeInHierarchy)
+                        if (gameObject.activeSelf)
                         {
                             StartCoroutine(m_coResetWasEditing);
                         }
@@ -248,7 +240,7 @@ namespace Battlehub.UIControls
         private IEnumerator m_coResetWasEditing;
         private IEnumerator CoResetWasEditing()
         {
-            yield return new WaitForSecondsRealtime(0.5f);
+            yield return new WaitForSeconds(0.5f);
             ResetWasEditing();
         }
 
@@ -337,7 +329,7 @@ namespace Battlehub.UIControls
 
         private IEnumerator CoBeginEdit()
         {
-            yield return new WaitForSecondsRealtime(0.5f);
+            yield return new WaitForSeconds(0.5f);
             m_coBeginEdit = null;
             if(m_itemsControl.IsSelected && m_itemsControl.IsFocused)
             {
@@ -375,7 +367,7 @@ namespace Battlehub.UIControls
 
         private IEnumerator CoHold(PointerEventData eventData)
         {
-            yield return new WaitForSecondsRealtime(0.5f);
+            yield return new WaitForSeconds(0.5f);
 
             if (Hold != null)
             {

@@ -27,20 +27,6 @@ namespace Battlehub.UIControls
             rt.anchoredPosition = position;
         }
 
-        public static void TopRight(this RectTransform rt, Vector2 position, Vector2 size)
-        {
-            rt.anchorMin = new Vector2(1, 1);
-            rt.anchorMax = new Vector2(1, 1);
-            rt.offsetMin = Vector2.one;
-            rt.offsetMax = Vector2.one;
-
-            SetPivot(rt, new Vector2(1, 1));
-
-            rt.sizeDelta = size;
-            rt.anchoredPosition = position;
-        }
-
-
         public static void Stretch(this RectTransform rt)
         {
             rt.anchorMin = new Vector2(0, 0);

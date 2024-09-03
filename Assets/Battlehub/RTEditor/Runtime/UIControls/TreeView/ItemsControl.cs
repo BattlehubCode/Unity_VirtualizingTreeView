@@ -170,20 +170,13 @@ namespace Battlehub.UIControls
             set { m_canDrag = value; }
         }
 
-        private bool m_canBeParent = true;
+        private bool m_canDrop = true;
         public bool CanBeParent
         {
-            get { return m_canBeParent; }
-            set { m_canBeParent = value; }
+            get { return m_canDrop; }
+            set { m_canDrop = value; }
         }
 
-        private bool m_canBeSibling = true;
-        public bool CanBeSibling
-        {
-            get { return m_canBeSibling; }
-            set { m_canBeSibling = value; }
-        }
-        
         private bool m_canReparent = true;
         public bool CanChangeParent
         {

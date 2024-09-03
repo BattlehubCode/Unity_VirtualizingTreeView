@@ -53,7 +53,7 @@ namespace Battlehub.UIControls
 
         private Color UpdateAlpha(Color color, int index)
         {
-            m_alpha[index] -= Time.unscaledDeltaTime * Speed;
+            m_alpha[index] -= Time.deltaTime * Speed;
             if (m_alpha[index] < 0.0f)
             {
                 m_alpha[index] = 1.0f;
